@@ -22,7 +22,7 @@
 (def sample-db-qualified
   {:person/age [:and int? pos?]
    :person/first-name string?
-   :address/state [:or string? :keyword]
+   :address/state [:or [:and string? #(< (count %) 3)] :keyword]
    :person/address :address/object
    :person/object {:req #{:person/first-name
                           :person/address}
@@ -34,7 +34,7 @@
     (with-redefs [a/get-preds
                   (constantly
                    sample-db-unqualified)]
-      (t/are [kw v] (a/valid? kw v)
+      (t/are [x v] (a/valid? x v)
         :age 56
         :first-name "Mickey"
         :state "CA"
@@ -49,6 +49,7 @@
         :person/age 56
         :person/first-name "Mickey"
         :address/state "CA"
+        :address/state :california
         :person/object {:person/first-name "Miro"
                         :person/age 67
                         :person/address

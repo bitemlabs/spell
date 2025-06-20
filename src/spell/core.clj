@@ -35,30 +35,35 @@
 (def any-true?
   (partial some true?))
 
-(defn valid? [kw-or-fn v]
-  (cond (fn? kw-or-fn) (kw-or-fn v)
-        (keyword? kw-or-fn)
-        (if-let [f (get abbreviations kw-or-fn)]
-          (f v)
-          (let [pulled (get (get-preds) kw-or-fn)]
-            (cond (map? pulled)
-                  (all-true?
-                   (concat (map #(valid? % (get v %)) (:req pulled))
-                           (map #(or (nil? (get v %)) (valid? % (get v %))) (:opt pulled))))
-                  (vector? pulled) (let [[op & col] pulled]
-                                     (case op
-                                       :or (any-true? (map #(valid? % v) col))
-                                       :and (all-true? (map #(valid? % v) col))))
-                  (keyword? pulled)
-                  (valid? pulled v)
-                  (fn? pulled)
-                  (pulled v))))
-        :else (throw (ex-info "first arg must be either keyword or function"
-                              {:error :type}))))
+(defn fail! [msg]
+  (throw (ex-info msg {:spell :error})))
+
+(defn valid? [spec v]
+  (let [abbr-f (get abbreviations spec)
+        pred (get (get-preds) spec)]
+    (cond abbr-f (valid? abbr-f v)
+          pred (valid? pred v)
+          (fn? spec) (try (spec v) (catch Exception _ false))
+          (map? spec) (all-true?
+                       (concat (map #(valid? % (get v %))
+                                    (:req spec))
+                               (map #(or (nil? (get v %))
+                                         (valid? % (get v %)))
+                                    (:opt spec))))
+          (vector? spec) (let [[op & col] spec]
+                           (case op
+                             :or (any-true? (map #(valid? % v) col))
+                             :and (all-true? (map #(valid? % v) col))
+                             (fail! "operator is not correct")))
+          :else (fail! "indicator at the first arg doesn't match"))))
 
 (defn coerce [kw v]
   (when-not (valid? kw v)
     (throw (ex-info "oiu" {})))
   v)
 
-()
+(comment
+  (df :person/username [:or :keyword [:and :string #(< 4 (count %))]])
+  (df :person/username [:and :string #(< 4 (count %))])
+  @preds
+  (valid? :person/username :darren))
