@@ -31,7 +31,7 @@
 
 (t/deftest valid?-test
   (t/testing "unqualified schema"
-    (with-redefs [a/get-db
+    (with-redefs [a/get-preds
                   (constantly
                    sample-db-unqualified)]
       (t/are [kw v] (a/valid? kw v)
@@ -42,7 +42,7 @@
                  :age 67
                  :address {:state "CA"}})))
   (t/testing "qualified schema"
-    (with-redefs [a/get-db
+    (with-redefs [a/get-preds
                   (constantly
                    sample-db-qualified)]
       (t/are [kw v] (a/valid? kw v)

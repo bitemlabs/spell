@@ -1,10 +1,25 @@
 (ns spell.core)
 
-(defonce ^:private db
+(defonce ^:private configs
+  (atom {:inst-level :none}))
+
+(defn inst-level! [k]
+  (swap! configs assoc :inst-level k))
+
+(defn inst! []
+  (inst-level! :high))
+
+(defn midst! []
+  (inst-level! :low))
+
+(defn unst! []
+  (inst-level! :none))
+
+(defonce ^:private preds
   (atom {}))
 
-(defn get-db []
-  (deref db))
+(defn get-preds []
+  (deref preds))
 
 (def abbreviations
   {:int int?
@@ -12,7 +27,7 @@
    :keyword keyword?})
 
 (defn df [kw thing]
-  (swap! db assoc kw thing))
+  (swap! preds assoc kw thing))
 
 (def all-true?
   (partial every? true?))
@@ -25,7 +40,7 @@
         (keyword? kw-or-fn)
         (if-let [f (get abbreviations kw-or-fn)]
           (f v)
-          (let [pulled (get (get-db) kw-or-fn)]
+          (let [pulled (get (get-preds) kw-or-fn)]
             (cond (map? pulled)
                   (all-true?
                    (concat (map #(valid? % (get v %)) (:req pulled))
@@ -45,3 +60,5 @@
   (when-not (valid? kw v)
     (throw (ex-info "oiu" {})))
   v)
+
+()
