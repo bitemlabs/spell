@@ -1,8 +1,9 @@
 *.log
 .DS_Store
 .env
-.clj-kondo
 .lsp
 .cpcache
 .calva
 .nrepl-port
+.clj-kondo
+!.clj-kondo/config.edn

@@ -1,10 +1,17 @@
 (ns spell.core-test
   (:require
    [clojure.test :as t]
-   [spell.core :as a]))
+   [spell.core :as s]))
+
+(t/deftest fail!-test
+  (t/testing "fail! throws ex-info"
+    (t/is (thrown-with-msg?
+           clojure.lang.ExceptionInfo
+           #"fail" (s/fail! "fail")))))
 
 (t/deftest all-true?-test
-  (t/are [in exp] (= exp (a/all-true? in))
+  (t/are [in exp]
+         (= exp (s/all-true? in))
     [true true true] true
     [1 true true] false
     [true nil true] false
@@ -31,10 +38,10 @@
 
 (t/deftest valid?-test
   (t/testing "unqualified schema"
-    (with-redefs [a/get-preds
+    (with-redefs [s/get-defs
                   (constantly
                    sample-db-unqualified)]
-      (t/are [x v] (a/valid? x v)
+      (t/are [x v] (s/valid? x v)
         :age 56
         :first-name "Mickey"
         :state "CA"
@@ -42,10 +49,10 @@
                  :age 67
                  :address {:state "CA"}})))
   (t/testing "qualified schema"
-    (with-redefs [a/get-preds
+    (with-redefs [s/get-defs
                   (constantly
                    sample-db-qualified)]
-      (t/are [kw v] (a/valid? kw v)
+      (t/are [kw v] (s/valid? kw v)
         :person/age 56
         :person/first-name "Mickey"
         :address/state "CA"

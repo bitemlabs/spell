@@ -1,10 +1,11 @@
 (ns spell.core)
 
-(defonce ^:private configs
+(defonce ^:private config
   (atom {:inst-level :none}))
 
 (defn inst-level! [k]
-  (swap! configs assoc :inst-level k))
+  (swap! config assoc
+         :inst-level k))
 
 (defn inst! []
   (inst-level! :high))
@@ -15,11 +16,11 @@
 (defn unst! []
   (inst-level! :none))
 
-(defonce ^:private preds
+(defonce ^:private defs
   (atom {}))
 
-(defn get-preds []
-  (deref preds))
+(defn get-defs []
+  (deref defs))
 
 (def abbreviations
   {:int int?
@@ -27,7 +28,7 @@
    :keyword keyword?})
 
 (defn df [kw thing]
-  (swap! preds assoc kw thing))
+  (swap! defs assoc kw thing))
 
 (def all-true?
   (partial every? true?))
@@ -40,7 +41,7 @@
 
 (defn valid? [spec v]
   (let [abbr-f (get abbreviations spec)
-        pred (get (get-preds) spec)]
+        pred (get (get-defs) spec)]
     (cond abbr-f (valid? abbr-f v)
           pred (valid? pred v)
           (fn? spec) (try (spec v) (catch Exception _ false))
@@ -62,8 +63,26 @@
     (throw (ex-info "oiu" {})))
   v)
 
-(comment
-  (df :person/username [:or :keyword [:and :string #(< 4 (count %))]])
-  (df :person/username [:and :string #(< 4 (count %))])
-  @preds
-  (valid? :person/username :darren))
+(defmacro defnt
+  [ident args sigs & body]
+  (let [in-sigs (butlast sigs)
+        out-sig (last sigs)]
+    `(defn ~ident ~args
+       (let [level# (:inst-level @config)
+             f# (case level#
+                  :high fail!
+                  :low println
+                  identity)]
+         (when-not (= :none level#)
+           (doall
+            (map (fn [arg# sig#]
+                   (when-not (valid? sig# arg#)
+                     (f# (str "Invalid input to "
+                              '~ident ": " arg#))))
+                 (list ~@args) (list ~@in-sigs))))
+         (let [ret# (do ~@body)]
+           (when-not (= :none level#)
+             (when-not (valid? ~out-sig ret#)
+               (f# (str "Invalid output from "
+                        '~ident ": " ret#))))
+           ret#)))))
