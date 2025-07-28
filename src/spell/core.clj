@@ -1,6 +1,7 @@
 (ns spell.core
   (:require
-   [spell.store.instrument :as store.inst]))
+   [spell.store.instrument :as store.inst]
+   [clojure.pprint :as pp]))
 
 (defonce ^:private config
   (atom {:inst-level :none}))
@@ -42,8 +43,8 @@
   (partial some true?))
 
 (defn fail! [msg data]
-  (println "spell error:")
-  (println data)
+  (println "🛑 spell error:")
+  (pp/pprint data)
   (throw (ex-info msg data)))
 
 (defn valid? [spec v]
