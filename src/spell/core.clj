@@ -41,16 +41,17 @@
 (def any-true?
   (partial some true?))
 
-(defn fail! [m]
-  (throw (ex-info "error detected by spell"
-                  m)))
+(defn fail! [msg data]
+  (println "spell error:")
+  (println data)
+  (throw (ex-info msg data)))
 
 (defn valid? [spec v]
   (let [abbr-f (get abbreviations spec)
         pred (get (get-defs) spec)]
     (cond abbr-f (valid? abbr-f v)
           pred (valid? pred v)
-          (fn? spec) (try (spec v) (catch Exception _ false))
+          (fn? spec) (spec v)
           (map? spec) (all-true?
                        (concat (map #(valid? % (get v %))
                                     (:req spec))
@@ -61,12 +62,15 @@
                            (case op
                              :or (any-true? (map #(valid? % v) col))
                              :and (all-true? (map #(valid? % v) col))
-                             (fail! "operator is not correct")))
-          :else (fail! "indicator at the first arg doesn't match"))))
+                             (fail! "invalid logical operator in vector spec"
+                                    {:spec spec :value v})))
+          :else (fail! "invalid spec form"
+                       {:spec spec :value v}))))
 
 (defn coerce [kw v]
   (when-not (valid? kw v)
-    (throw (ex-info "oiu" {})))
+    (fail! "coercion failed"
+           {:spec kw :value v}))
   v)
 
 (defn single-arity? [fn-tail]
@@ -92,7 +96,7 @@
                        path# [(ns-name *ns*) '~ident ~arity]
                        in# (store.inst/pull path# :in)
                        out# (store.inst/pull path# :out)
-                       f# #(throw (ex-info %1 %2))]
+                       f# fail!]
                    (doall
                     (map (fn [arg# sig#]
                            (when-not (valid? sig# arg#)

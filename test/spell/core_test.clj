@@ -7,7 +7,7 @@
   (t/testing "fail! throws ex-info"
     (t/is (thrown-with-msg?
            clojure.lang.ExceptionInfo
-           #"fail" (s/fail! "fail")))))
+           #"fail" (s/fail! "fail" {:abc 123})))))
 
 (t/deftest all-true?-test
   (t/are [in exp]
