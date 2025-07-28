@@ -1,83 +1,65 @@
 (ns spell.core-test
-  (:require
-   [clojure.test :as t]
-   [spell.core :as s]))
+  (:require [clojure.test :as t]
+            [spell.core :as s]))
 
-(t/deftest fail!-test
-  (t/testing "fail! throws ex-info"
-    (t/is (thrown-with-msg?
-           clojure.lang.ExceptionInfo
-           #"fail" (s/fail! "fail" {:abc 123})))))
+(s/inst!)
 
-(t/deftest all-true?-test
-  (t/are [in exp]
-         (= exp (s/all-true? in))
-    [true true true] true
-    [1 true true] false
-    [true nil true] false
-    [true true false] false))
+(t/deftest abbreviation-validation
+  (t/is (s/valid? :int 42))
+  (t/is (not (s/valid? :int "hi")))
+  (t/is (s/valid? :string "hello"))
+  (t/is (not (s/valid? :string 42))))
 
-(def sample-db-unqualified
-  {:age int?
-   :first-name string?
-   :state :string
-   :person {:req #{:first-name
-                   :address}
-            :opt #{:age}}
-   :address {:req #{:state}}})
+(s/df :a :int)
+(s/df :b :int)
 
-(def sample-db-qualified
-  {:person/age [:and int? pos?]
-   :person/first-name string?
-   :address/state [:or [:and string? #(< (count %) 3)] :keyword]
-   :person/address :address/object
-   :person/object {:req #{:person/first-name
-                          :person/address}
-                   :opt #{:person/age}}
-   :address/object {:req #{:address/state}}})
+(t/deftest map-spec-validation
+  (t/is (s/valid? {:req [:a :b]} {:a 1 :b 2}))
+  (t/is (not (s/valid? {:req [:a :b]} {:a 1})))
+  (t/is (s/valid? {:req [:a] :opt [:b]} {:a 1}))
+  (t/is (s/valid? {:req [:a] :opt [:b]} {:a 1 :b 2}))
+  (t/is (not (s/valid? {:req [:a] :opt [:b]} {:b 1}))))
 
-(t/deftest valid?-test
-  (t/testing "unqualified schema"
-    (with-redefs [s/get-defs
-                  (constantly
-                   sample-db-unqualified)]
-      (t/are [x v] (s/valid? x v)
-        :age 56
-        :first-name "Mickey"
-        :state "CA"
-        :person {:first-name "Miro"
-                 :age 67
-                 :address {:state "CA"}})))
-  (t/testing "qualified schema"
-    (with-redefs [s/get-defs
-                  (constantly
-                   sample-db-qualified)]
-      (t/are [kw v] (s/valid? kw v)
-        :person/age 56
-        :person/first-name "Mickey"
-        :address/state "CA"
-        :address/state :california
-        :person/object {:person/first-name "Miro"
-                        :person/age 67
-                        :person/address
-                        {:address/state "CA"}}))))
+(t/deftest logical-spec-validation
+  (t/is (s/valid? [:or :int :string] 42))
+  (t/is (s/valid? [:or :int :string] "hi"))
+  (t/is (not (s/valid? [:or :int :string] :foo)))
 
+  (t/is (s/valid? [:and int? #(>= % 0)] 3))
+  (t/is (not (s/valid? [:and int? #(>= % 0)] -1))))
 
-(s/defnt xyz [i]
+(t/deftest collection-spec-validation
+  (t/is (s/valid? [:vector :int] [1 2 3]))
+  (t/is (not (s/valid? [:vector :int] [1 "hi"])))
+  (t/is (s/valid? [:list :string] '("a" "b")))
+  (t/is (not (s/valid? [:list :string] '("a" 1))))
+  (t/is (s/valid? [:set :keyword] #{:a :b}))
+  (t/is (not (s/valid? [:set :keyword] #{:a 1}))))
+
+(s/defnt square
+  [x]
   [:int :=> :int]
-  (+ i 100))
+  (* x x))
 
-(xyz 123)
-(xyz 1.2)
+(t/deftest defnt-single-arity
+  (t/is (= 9 (square 3)))
+  (t/is (t/thrown? clojure.lang.ExceptionInfo (square "hi"))))
 
-(s/defnt abc
-  ([a]
-   [:int :=> :int]
-   a)
-  ([a b]
-   [:int :int :=> :int]
-    (+ a b)))
+(s/defnt sum
+  ([a] [:int :=> :int] a)
+  ([a b] [:int :int :=> :int] (+ a b)))
 
-(abc 1.1)
-(abc 1 2.3)
-(abc 123 345.3)
+(t/deftest defnt-multi-arity
+  (t/is (= 5 (sum 5)))
+  (t/is (= 7 (sum 3 4)))
+  (t/is (t/thrown? clojure.lang.ExceptionInfo (sum 3 "x"))))
+
+(t/deftest coerce-test
+  (t/is (= 10 (s/coerce :int 10)))
+  (t/is (t/thrown? clojure.lang.ExceptionInfo (s/coerce :int "bad"))))
+
+(s/df :pos #(and (int? %) (pos? %)))
+
+(t/deftest df-custom-spec-test
+  (t/is (s/valid? :pos 3))
+  (t/is (not (s/valid? :pos -1))))

@@ -63,6 +63,9 @@
                            (case op
                              :or (any-true? (map #(valid? % v) col))
                              :and (all-true? (map #(valid? % v) col))
+                             :vector (and (vector? v) (all-true? (map #(valid? (first col) %) v)))
+                             :list (and (list? v) (all-true? (map #(valid? (first col) %) v)))
+                             :set (and (set? v) (all-true? (map #(valid? (first col) %) v)))
                              (fail! "invalid logical operator in vector spec"
                                     {:spec spec :value v})))
           :else (fail! "invalid spec form"
