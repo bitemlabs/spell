@@ -61,3 +61,7 @@
                         :person/age 67
                         :person/address
                         {:address/state "CA"}}))))
+
+(s/defnt abc [a b]
+  [:int :int :=> :int]
+  (+ a b))

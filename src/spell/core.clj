@@ -1,4 +1,6 @@
-(ns spell.core)
+(ns spell.core
+  (:require
+   [spell.store.instrument :as store.inst]))
 
 (defonce ^:private config
   (atom {:inst-level :none}))
@@ -19,6 +21,9 @@
 (defonce ^:private defs
   (atom {}))
 
+(defn get-config []
+  (deref config))
+
 (defn get-defs []
   (deref defs))
 
@@ -36,8 +41,9 @@
 (def any-true?
   (partial some true?))
 
-(defn fail! [msg]
-  (throw (ex-info msg {:spell :error})))
+(defn fail! [m]
+  (throw (ex-info "error detected by spell"
+                  m)))
 
 (defn valid? [spec v]
   (let [abbr-f (get abbreviations spec)
@@ -63,26 +69,47 @@
     (throw (ex-info "oiu" {})))
   v)
 
+(defn err-msg
+  ([ns_ ident arity reason]
+   {:ns ns_
+    :ident ident
+    :arity arity
+    :reason reason})
+  ([ns_ ident arity arg reason]
+   {:ns ns_
+    :ident ident
+    :arity arity
+    :arg arg
+    :reason reason}))
+
 (defmacro defnt
   [ident args sigs & body]
-  (let [in-sigs (butlast sigs)
-        out-sig (last sigs)]
+  (let [arity (count args)
+        in-sigs (-> sigs butlast butlast vec)
+        out-sig (last sigs)
+        path [(ns-name *ns*) ident arity]]
+    (store.inst/push! path {:in in-sigs :out out-sig})
     `(defn ~ident ~args
-       (let [level# (:inst-level @config)
-             f# (case level#
-                  :high fail!
-                  :low println
-                  identity)]
-         (when-not (= :none level#)
-           (doall
-            (map (fn [arg# sig#]
-                   (when-not (valid? sig# arg#)
-                     (f# (str "Invalid input to "
-                              '~ident ": " arg#))))
-                 (list ~@args) (list ~@in-sigs))))
+       (let [level# (:inst-level (get-config))
+             path# [(ns-name ~*ns*) '~ident ~arity]
+             in# (store.inst/pull path# :in)
+             out# (store.inst/pull path# :out)
+             f# #(throw (ex-info %1 %2))]
+         (doall
+          (map (fn [arg# sig#]
+                 (when-not (valid? sig# arg#)
+                   (f# "inst input fail"
+                       {:ns (ns-name ~*ns*)
+                        :ident '~ident
+                        :arity ~arity
+                        :arg arg#
+                        :reason "...."})))
+               ~args in#))
          (let [ret# (do ~@body)]
-           (when-not (= :none level#)
-             (when-not (valid? ~out-sig ret#)
-               (f# (str "Invalid output from "
-                        '~ident ": " ret#))))
+           (when-not (valid? out# ret#)
+             (f# "inst output fail"
+                 {:ns (ns-name ~*ns*)
+                  :ident '~ident
+                  :arity ~arity
+                  :reason "...."}))
            ret#)))))
