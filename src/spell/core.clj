@@ -69,47 +69,45 @@
     (throw (ex-info "oiu" {})))
   v)
 
-(defn err-msg
-  ([ns_ ident arity reason]
-   {:ns ns_
-    :ident ident
-    :arity arity
-    :reason reason})
-  ([ns_ ident arity arg reason]
-   {:ns ns_
-    :ident ident
-    :arity arity
-    :arg arg
-    :reason reason}))
+(defn single-arity? [fn-tail]
+  (vector? (first fn-tail)))
 
 (defmacro defnt
-  [ident args sigs & body]
-  (let [arity (count args)
-        in-sigs (-> sigs butlast butlast vec)
-        out-sig (last sigs)
-        path [(ns-name *ns*) ident arity]]
-    (store.inst/push! path {:in in-sigs :out out-sig})
-    `(defn ~ident ~args
-       (let [level# (:inst-level (get-config))
-             path# [(ns-name ~*ns*) '~ident ~arity]
-             in# (store.inst/pull path# :in)
-             out# (store.inst/pull path# :out)
-             f# #(throw (ex-info %1 %2))]
-         (doall
-          (map (fn [arg# sig#]
-                 (when-not (valid? sig# arg#)
-                   (f# "inst input fail"
-                       {:ns (ns-name ~*ns*)
-                        :ident '~ident
-                        :arity ~arity
-                        :arg arg#
-                        :reason "...."})))
-               ~args in#))
-         (let [ret# (do ~@body)]
-           (when-not (valid? out# ret#)
-             (f# "inst output fail"
-                 {:ns (ns-name ~*ns*)
-                  :ident '~ident
-                  :arity ~arity
-                  :reason "...."}))
-           ret#)))))
+  [ident & fn-tail]
+  (let [arities (if (single-arity? fn-tail)
+                  [fn-tail] fn-tail)]
+    `(do
+       ~@(for [[args sigs & _body] arities]
+           (let [arity (count args)
+                 in-sigs (-> sigs butlast butlast vec)
+                 out-sig (last sigs)]
+             `(store.inst/push!
+               [(ns-name *ns*) '~ident ~arity]
+               {:in ~in-sigs :out ~out-sig})))
+       (defn ~ident
+         ~@(for [[args _sigs & body] arities]
+             (let [arity (count args)]
+               `(~args
+                 (let [level# (:inst-level (get-config))
+                       path# [(ns-name *ns*) '~ident ~arity]
+                       in# (store.inst/pull path# :in)
+                       out# (store.inst/pull path# :out)
+                       f# #(throw (ex-info %1 %2))]
+                   (doall
+                    (map (fn [arg# sig#]
+                           (when-not (valid? sig# arg#)
+                             (f# "inst input fail"
+                                 {:ns (ns-name *ns*)
+                                  :ident '~ident
+                                  :arity ~arity
+                                  :arg arg#
+                                  :reason "...."})))
+                         ~args in#))
+                   (let [ret# (do ~@body)]
+                     (when-not (valid? out# ret#)
+                       (f# "inst output fail"
+                           {:ns (ns-name *ns*)
+                            :ident '~ident
+                            :arity ~arity
+                            :reason "...."}))
+                     ret#)))))))))

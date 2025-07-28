@@ -62,6 +62,22 @@
                         :person/address
                         {:address/state "CA"}}))))
 
-(s/defnt abc [a b]
-  [:int :int :=> :int]
-  (+ a b))
+
+(s/defnt xyz [i]
+  [:int :=> :int]
+  (+ i 100))
+
+(xyz 123)
+(xyz 1.2)
+
+(s/defnt abc
+  ([a]
+   [:int :=> :int]
+   a)
+  ([a b]
+   [:int :int :=> :int]
+    (+ a b)))
+
+(abc 1.1)
+(abc 1 2.3)
+(abc 123 345.3)
