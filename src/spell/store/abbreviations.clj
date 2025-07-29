@@ -1,6 +1,6 @@
 (ns spell.store.abbreviations)
 
-(def ^:private db
+(defonce ^:private db
   (atom {:int int?
          :string string?
          :keyword keyword?}))

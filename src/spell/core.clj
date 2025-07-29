@@ -1,30 +1,21 @@
 (ns spell.core
   (:require
    [spell.store.abbreviations :as store.abbr]
+   [spell.store.config :as store.config]
    [spell.store.instrument :as store.inst]
    [spell.store.predicates :as store.preds]
    [spell.utils :as u]))
 
 (def df store.preds/push!)
 
-(defonce ^:private config
-  (atom {:inst-level :none}))
-
-(defn inst-level! [k]
-  (swap! config assoc
-         :inst-level k))
-
 (defn inst! []
-  (inst-level! :high))
+  (store.config/level! :high))
 
 (defn midst! []
-  (inst-level! :low))
+  (store.config/level! :low))
 
 (defn unst! []
-  (inst-level! :none))
-
-(defn get-config []
-  (deref config))
+  (store.config/level! nil))
 
 (defn valid? [spec v]
   (let [abbr-f (store.abbr/pull spec)
@@ -56,12 +47,9 @@
            {:spec kw :value v}))
   v)
 
-(defn single-arity? [fn-tail]
-  (vector? (first fn-tail)))
-
 (defmacro defnt
   [ident & fn-tail]
-  (let [arities (if (single-arity? fn-tail)
+  (let [arities (if (u/single-arity? fn-tail)
                   [fn-tail] fn-tail)]
     `(do
        ~@(for [[args sigs & _body] arities]
@@ -79,7 +67,10 @@
                        path# [(ns-name *ns*) '~ident ~arity]
                        in# (store.inst/pull path# :in)
                        out# (store.inst/pull path# :out)
-                       f# u/fail!]
+                       f# (case (store.config/pull :level)
+                            :high u/fail!
+                            :low println
+                            nil identity)]
                    (doall
                     (map (fn [arg# sig#]
                            (when-not (valid? sig# arg#)
@@ -98,3 +89,8 @@
                             :arity ~arity
                             :reason "...."}))
                      ret#)))))))))
+
+(comment
+  (inst!)
+  (midst!)
+  (unst!))

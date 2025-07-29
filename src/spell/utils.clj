@@ -12,3 +12,6 @@
   (println "🛑 spell error:")
   (pp/pprint data)
   (throw (ex-info msg data)))
+
+(defn single-arity? [fn-tail]
+  (vector? (first fn-tail)))
