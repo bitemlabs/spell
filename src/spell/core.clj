@@ -1,5 +1,6 @@
 (ns spell.core
   (:require
+   [spell.store.abbreviations :as store.abbr]
    [spell.store.instrument :as store.inst]
    [spell.store.predicates :as store.preds]
    [spell.utils :as u]))
@@ -25,13 +26,8 @@
 (defn get-config []
   (deref config))
 
-(def abbreviations
-  {:int int?
-   :string string?
-   :keyword keyword?})
-
 (defn valid? [spec v]
-  (let [abbr-f (get abbreviations spec)
+  (let [abbr-f (store.abbr/pull spec)
         pred (get (store.preds/pull) spec)]
     (cond abbr-f (valid? abbr-f v)
           pred (valid? pred v)
