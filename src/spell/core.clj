@@ -1,7 +1,10 @@
 (ns spell.core
   (:require
    [spell.store.instrument :as store.inst]
+   [spell.store.predicates :as store.preds]
    [clojure.pprint :as pp]))
+
+(def df store.preds/push!)
 
 (defonce ^:private config
   (atom {:inst-level :none}))
@@ -19,22 +22,13 @@
 (defn unst! []
   (inst-level! :none))
 
-(defonce ^:private defs
-  (atom {}))
-
 (defn get-config []
   (deref config))
-
-(defn get-defs []
-  (deref defs))
 
 (def abbreviations
   {:int int?
    :string string?
    :keyword keyword?})
-
-(defn df [kw thing]
-  (swap! defs assoc kw thing))
 
 (def all-true?
   (partial every? true?))
@@ -49,7 +43,7 @@
 
 (defn valid? [spec v]
   (let [abbr-f (get abbreviations spec)
-        pred (get (get-defs) spec)]
+        pred (get (store.preds/pull) spec)]
     (cond abbr-f (valid? abbr-f v)
           pred (valid? pred v)
           (fn? spec) (spec v)
