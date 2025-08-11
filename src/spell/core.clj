@@ -63,8 +63,7 @@
          ~@(for [[args _sigs & body] arities]
              (let [arity (count args)]
                `(~args
-                 (let [level# (:inst-level (get-config))
-                       path# [(ns-name *ns*) '~ident ~arity]
+                 (let [path# [(ns-name *ns*) '~ident ~arity]
                        in# (store.inst/pull path# :in)
                        out# (store.inst/pull path# :out)
                        f# (case (store.config/pull :level)

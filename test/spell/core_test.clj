@@ -1,7 +1,13 @@
 (ns spell.core-test
   (:require [clojure.test :as t]
             [spell.core :as s]))
-(t/use-fixtures :once (fn [f] (s/inst!) (f) (s/unst!)))
+
+(t/use-fixtures
+  :once
+  (fn [f]
+    (s/inst!)
+    (f)
+    (s/unst!)))
 
 (t/deftest abbreviation-validation
   (t/is (s/valid? :int 42))
