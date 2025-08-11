@@ -51,43 +51,31 @@
   [ident & fn-tail]
   (let [arities (if (u/single-arity? fn-tail)
                   [fn-tail] fn-tail)]
-    `(do
-       ~@(for [[args sigs & _body] arities]
-           (let [arity (count args)
-                 in-sigs (-> sigs butlast butlast vec)
-                 out-sig (last sigs)]
-             `(store.inst/push!
-               [(ns-name *ns*) '~ident ~arity]
-               {:in ~in-sigs :out ~out-sig})))
-       (defn ~ident
-         ~@(for [[args _sigs & body] arities]
-             (let [arity (count args)]
-               `(~args
-                 (let [path# [(ns-name *ns*) '~ident ~arity]
-                       in# (store.inst/pull path# :in)
-                       out# (store.inst/pull path# :out)
-                       f# (case (store.config/pull :level)
-                            :high u/fail!
-                            :low println
-                            nil identity)]
-                   (doall
-                    (map (fn [arg# sig#]
-                           (when-not (valid? sig# arg#)
-                             (f# "inst input fail"
-                                 {:ns (ns-name *ns*)
-                                  :ident '~ident
-                                  :arity ~arity
-                                  :arg arg#
-                                  :reason "...."})))
-                         ~args in#))
-                   (let [ret# (do ~@body)]
-                     (when-not (valid? out# ret#)
-                       (f# "inst output fail"
-                           {:ns (ns-name *ns*)
-                            :ident '~ident
-                            :arity ~arity
-                            :reason "...."}))
-                     ret#)))))))))
+    `(defn ~ident
+       ~@(for [[args sigs & body] arities]
+           (let [in-sigs (-> sigs butlast butlast vec)
+                 out-sig (last sigs)
+                 f-symb (gensym "f")]
+             `(~args
+               (let [~f-symb (case (store.config/pull :level)
+                               :high u/fail!
+                               :low println
+                               nil identity)]
+                 ;; input validation
+                 ~@(for [[arg-symb in-sig] (map vector args in-sigs)]
+                     `(when-not (valid? ~in-sig ~arg-symb)
+                        (~f-symb "inst input fail"
+                                 {:ident '~ident
+                                  :arg ~arg-symb
+                                  :spec ~in-sig})))
+                 ;; output validation
+                 (let [ret# (do ~@body)]
+                   (when-not (valid? ~out-sig ret#)
+                     (~f-symb "inst output fail"
+                              {:ident '~ident
+                               :return ret#
+                               :spec ~out-sig}))
+                   ret#))))))))
 
 (comment
   (inst!)
