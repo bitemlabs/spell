@@ -59,6 +59,17 @@
   (t/is (= 7 (sum 3 4)))
   (t/is (t/thrown? clojure.lang.ExceptionInfo (sum 3 "x"))))
 
+(s/defnt add-opt
+  [a & [b]]
+  [:int :int :=> :int]
+  (+ a (or b 0)))
+
+(t/deftest defnt-optional-args
+  (t/is (= 5 (add-opt 5)))
+  (t/is (= 9 (add-opt 4 5)))
+  (t/is (t/thrown? clojure.lang.ExceptionInfo (add-opt "hi")))
+  (t/is (t/thrown? clojure.lang.ExceptionInfo (add-opt 4 "x"))))
+
 (t/deftest coerce-test
   (t/is (= 10 (s/coerce :int 10)))
   (t/is (t/thrown? clojure.lang.ExceptionInfo (s/coerce :int "bad"))))

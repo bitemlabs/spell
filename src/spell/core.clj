@@ -53,7 +53,13 @@
                   [fn-tail] fn-tail)]
     `(do
        ~@(for [[args sigs & _body] arities]
-           (let [arity (count args)
+           (let [[req tail] (split-with #(not= '& %) args)
+                 tail (vec tail)
+                 opt (if (seq tail)
+                       (let [o (second tail)]
+                         (if (vector? o) o [o]))
+                       [])
+                 arity (+ (count req) (count opt))
                  in-sigs (-> sigs butlast butlast vec)
                  out-sig (last sigs)]
              `(store.inst/push!
@@ -61,7 +67,16 @@
                {:in ~in-sigs :out ~out-sig})))
        (defn ~ident
          ~@(for [[args _sigs & body] arities]
-             (let [arity (count args)]
+             (let [[req tail] (split-with #(not= '& %) args)
+                   tail (vec tail)
+                   opt (if (seq tail)
+                         (let [o (second tail)]
+                           (if (vector? o) o [o]))
+                         [])
+                   arity (+ (count req) (count opt))
+                   all-args (vec (concat req opt))
+                   optionals (vec (concat (repeat (count req) false)
+                                         (repeat (count opt) true)))]
                `(~args
                  (let [path# [(ns-name *ns*) '~ident ~arity]
                        in# (store.inst/pull path# :in)
@@ -71,15 +86,16 @@
                             :low println
                             nil identity)]
                    (doall
-                    (map (fn [arg# sig#]
-                           (when-not (valid? sig# arg#)
-                             (f# "inst input fail"
-                                 {:ns (ns-name *ns*)
-                                  :ident '~ident
-                                  :arity ~arity
-                                  :arg arg#
-                                  :reason "...."})))
-                         ~args in#))
+                    (map (fn [arg# sig# opt?#]
+                           (when (or (not opt?#) (some? arg#))
+                             (when-not (valid? sig# arg#)
+                               (f# "inst input fail"
+                                   {:ns (ns-name *ns*)
+                                    :ident '~ident
+                                    :arity ~arity
+                                    :arg arg#
+                                    :reason "...."}))))
+                         [~@all-args] in# ~optionals))
                    (let [ret# (do ~@body)]
                      (when-not (valid? out# ret#)
                        (f# "inst output fail"

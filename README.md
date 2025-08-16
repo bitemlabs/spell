@@ -109,6 +109,18 @@ Multi-arity is supported:
 (sum 3 "x")   ;; => throws
 ```
 
+Optional arguments are supported using `&`:
+
+```clojure
+(s/defnt add-opt
+  [a & [b]]
+  [:int :int :=> :int]
+  (+ a (or b 0)))
+
+(add-opt 5)     ;; => 5
+(add-opt 4 5)   ;; => 9
+```
+
 ---
 
 ## 🎛️ Instrumentation Levels
