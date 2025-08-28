@@ -31,7 +31,6 @@
   (t/is (s/valid? [:or :int :string] 42))
   (t/is (s/valid? [:or :int :string] "hi"))
   (t/is (not (s/valid? [:or :int :string] :foo)))
-
   (t/is (s/valid? [:and int? #(>= % 0)] 3))
   (t/is (not (s/valid? [:and int? #(>= % 0)] -1))))
 

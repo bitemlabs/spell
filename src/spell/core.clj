@@ -18,24 +18,24 @@
   (store.config/level! nil))
 
 (defn valid? [spec v]
-  (let [abbr-f (store.abbr/pull spec)
-        pred (get (store.preds/pull) spec)]
-    (cond abbr-f (valid? abbr-f v)
-          pred (valid? pred v)
+  (let [predef-fn (store.abbr/pull spec)
+        userdef-fn (get (store.preds/pull) spec)]
+    (cond userdef-fn (valid? userdef-fn v)
+          predef-fn (valid? predef-fn v)
           (fn? spec) (spec v)
-          (map? spec) (u/all-true?
-                       (concat (map #(valid? % (get v %))
-                                    (:req spec))
-                               (map #(or (nil? (get v %))
-                                         (valid? % (get v %)))
-                                    (:opt spec))))
-          (vector? spec) (let [[op & col] spec]
+          (map? spec) (let [{:keys [req opt]} spec
+                            nilable-valid? (u/nilable-pred valid?)]
+                        (and (every? #(valid? % (get v %)) req)
+                             (every? #(nilable-valid? % (get v %)) opt)))
+          (vector? spec) (let [[op & [a :as col]] spec
+                               pred-v #(valid? % v)
+                               pred-a #(valid? a %)]
                            (case op
-                             :or (u/any-true? (map #(valid? % v) col))
-                             :and (u/all-true? (map #(valid? % v) col))
-                             :vector (and (vector? v) (u/all-true? (map #(valid? (first col) %) v)))
-                             :list (and (list? v) (u/all-true? (map #(valid? (first col) %) v)))
-                             :set (and (set? v) (u/all-true? (map #(valid? (first col) %) v)))
+                             :or (some pred-v col)
+                             :and (every? pred-v col)
+                             :vector (and (vector? v) (every? pred-a v))
+                             :list (and (list? v) (every? pred-a v))
+                             :set (and (set? v) (every? pred-a v))
                              (u/fail! {:spec spec :value v})))
           :else (u/fail! {:spec spec :value v}))))
 
@@ -49,34 +49,35 @@
   (let [arities (if (u/single-arity? fn-tail)
                   [fn-tail] fn-tail)]
     `(do
-       ~@(for [[args sigs & _body] arities]
+       ~@(for [[args specs & _body] arities]
            (let [arity-n (count args)
-                 in-sigs (-> sigs butlast butlast vec)
-                 out-sig (last sigs)]
+                 in-specs (-> specs butlast butlast vec)
+                 out-spec (last specs)]
              `(store.inst/push!
                [(ns-name *ns*) '~ident ~arity-n]
-               {:in ~in-sigs :out ~out-sig})))
+               {:in ~in-specs :out ~out-spec})))
        (defn ~ident
-         ~@(for [[args _sigs & body] arities]
+         ~@(for [[args _specs & body] arities]
              (let [arity-n (count args)]
                `(~args
-                 (let [path# [(ns-name *ns*) '~ident ~arity-n]
-                       in-sigs# (store.inst/pull path# :in)
-                       out-sig# (store.inst/pull path# :out)
+                 (let [ns# (ns-name *ns*)
+                       path# [ns# '~ident ~arity-n]
+                       in-specs# (store.inst/pull path# :in)
+                       out-spec# (store.inst/pull path# :out)
                        level# (store.config/pull :level)
                        err-f# (case level# :high u/fail! :low u/notify)]
                    (when level#
                      (doall
-                      (map (fn [arg# in-sig#]
-                             (when-not (valid? in-sig# arg#)
-                               (err-f# (u/err-data :in (ns-name *ns*)
-                                                   '~ident ~arity-n arg# in-sig#))))
-                           ~args in-sigs#)))
+                      (map (fn [arg# in-spec#]
+                             (when-not (valid? in-spec# arg#)
+                               (err-f# (u/err-data :in ns# '~ident ~arity-n
+                                                   arg# in-spec#))))
+                           ~args in-specs#)))
                    (let [returned-val# (do ~@body)]
                      (when level#
-                       (when-not (valid? out-sig# returned-val#)
-                         (err-f# (u/err-data :out (ns-name *ns*)
-                                             '~ident ~arity-n returned-val# out-sig#))))
+                       (when-not (valid? out-spec# returned-val#)
+                         (err-f# (u/err-data :out ns# '~ident ~arity-n
+                                             returned-val# out-spec#))))
                      returned-val#)))))))))
 
 (comment

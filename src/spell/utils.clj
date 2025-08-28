@@ -2,11 +2,9 @@
   (:require
    [clojure.pprint :as pp]))
 
-(def all-true?
-  (partial every? true?))
-
-(def any-true?
-  (partial some true?))
+(defn nilable-pred [f]
+  (fn [spec x]
+    (or (nil? x) (f spec x))))
 
 (defn err-data [direction ns ident arity-n arg sig]
   {:direction direction
