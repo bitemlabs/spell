@@ -61,23 +61,23 @@
              (let [arity-n (count args)]
                `(~args
                  (let [path# [(ns-name *ns*) '~ident ~arity-n]
-                       in# (store.inst/pull path# :in)
-                       out# (store.inst/pull path# :out)
+                       in-sigs# (store.inst/pull path# :in)
+                       out-sig# (store.inst/pull path# :out)
                        level# (store.config/pull :level)
-                       f# (case level# :high u/fail! :low u/notify nil identity)]
+                       err-f# (case level# :high u/fail! :low u/notify)]
                    (when level#
                      (doall
-                      (map (fn [arg# sig#]
-                             (when-not (valid? sig# arg#)
-                               (f# (u/err-data :in (ns-name *ns*)
-                                               '~ident ~arity-n arg# sig#))))
-                           ~args in#)))
-                   (let [ret# (do ~@body)]
+                      (map (fn [arg# in-sig#]
+                             (when-not (valid? in-sig# arg#)
+                               (err-f# (u/err-data :in (ns-name *ns*)
+                                                   '~ident ~arity-n arg# in-sig#))))
+                           ~args in-sigs#)))
+                   (let [returned-val# (do ~@body)]
                      (when level#
-                       (when-not (valid? out# ret#)
-                         (f# {} (u/err-data :out (ns-name *ns*)
-                                            '~ident ~arity-n ret# out#))))
-                     ret#)))))))))
+                       (when-not (valid? out-sig# returned-val#)
+                         (err-f# (u/err-data :out (ns-name *ns*)
+                                             '~ident ~arity-n returned-val# out-sig#))))
+                     returned-val#)))))))))
 
 (comment
   (inst!)
