@@ -8,10 +8,19 @@
 (def any-true?
   (partial some true?))
 
-(defn fail! [msg data]
-  (println "🛑 spell error:")
-  (pp/pprint data)
-  (throw (ex-info msg data)))
+(defn err-data [direction ns ident arity-n arg sig]
+  {:direction direction
+   :ns ns :ident ident :arity-version arity-n
+   :argument arg :validation-signature sig})
+
+(defn fail! [m]
+  (throw
+   (ex-info
+    "🛑 error thrown by spell" m)))
+
+(defn notify [m]
+  (println "🛑 error notified by spell")
+  (pp/pprint m))
 
 (defn single-arity? [fn-tail]
   (vector? (first fn-tail)))

@@ -36,15 +36,12 @@
                              :vector (and (vector? v) (u/all-true? (map #(valid? (first col) %) v)))
                              :list (and (list? v) (u/all-true? (map #(valid? (first col) %) v)))
                              :set (and (set? v) (u/all-true? (map #(valid? (first col) %) v)))
-                             (u/fail! "invalid logical operator in vector spec"
-                                    {:spec spec :value v})))
-          :else (u/fail! "invalid spec form"
-                       {:spec spec :value v}))))
+                             (u/fail! {:spec spec :value v})))
+          :else (u/fail! {:spec spec :value v}))))
 
 (defn coerce [kw v]
   (when-not (valid? kw v)
-    (u/fail! "coercion failed"
-           {:spec kw :value v}))
+    (u/fail! {:spec kw :value v}))
   v)
 
 (defmacro defnt
@@ -53,40 +50,33 @@
                   [fn-tail] fn-tail)]
     `(do
        ~@(for [[args sigs & _body] arities]
-           (let [arity (count args)
+           (let [arity-n (count args)
                  in-sigs (-> sigs butlast butlast vec)
                  out-sig (last sigs)]
              `(store.inst/push!
-               [(ns-name *ns*) '~ident ~arity]
+               [(ns-name *ns*) '~ident ~arity-n]
                {:in ~in-sigs :out ~out-sig})))
        (defn ~ident
          ~@(for [[args _sigs & body] arities]
-             (let [arity (count args)]
+             (let [arity-n (count args)]
                `(~args
-                 (let [path# [(ns-name *ns*) '~ident ~arity]
+                 (let [path# [(ns-name *ns*) '~ident ~arity-n]
                        in# (store.inst/pull path# :in)
                        out# (store.inst/pull path# :out)
-                       f# (case (store.config/pull :level)
-                            :high u/fail!
-                            :low println
-                            nil identity)]
-                   (doall
-                    (map (fn [arg# sig#]
-                           (when-not (valid? sig# arg#)
-                             (f# "inst input fail"
-                                 {:ns (ns-name *ns*)
-                                  :ident '~ident
-                                  :arity ~arity
-                                  :arg arg#
-                                  :reason "...."})))
-                         ~args in#))
+                       level# (store.config/pull :level)
+                       f# (case level# :high u/fail! :low u/notify nil identity)]
+                   (when level#
+                     (doall
+                      (map (fn [arg# sig#]
+                             (when-not (valid? sig# arg#)
+                               (f# (u/err-data :in (ns-name *ns*)
+                                               '~ident ~arity-n arg# sig#))))
+                           ~args in#)))
                    (let [ret# (do ~@body)]
-                     (when-not (valid? out# ret#)
-                       (f# "inst output fail"
-                           {:ns (ns-name *ns*)
-                            :ident '~ident
-                            :arity ~arity
-                            :reason "...."}))
+                     (when level#
+                       (when-not (valid? out# ret#)
+                         (f# {} (u/err-data :out (ns-name *ns*)
+                                            '~ident ~arity-n ret# out#))))
                      ret#)))))))))
 
 (comment
