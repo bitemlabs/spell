@@ -30,30 +30,32 @@
 
 ## 📦 Defining and Using Specs
 
-You can register predicates using `s/df`, and validate with `s/valid?`:
+Use `s/def` to associate a spec with a keyword, string, or vector.  The
+registration is mutable, so redefining a name updates the spec at runtime.
+Once defined, validate values with `s/valid?`:
 
 ```clojure
 (require '[spell.core :as s])
 
-(s/df :int int?)
-(s/df :string string?)
+(s/def :int int?)
+(s/def :string string?)
 
 (s/valid? :int 42)        ;; => true
 (s/valid? :int "oops")    ;; => false
 ```
 
-You can define specs on strings and vectors too:
+Specs are not limited to keywords—you can also target strings and vectors:
 
 ```clojure
-(s/df ["age"] pos-int?)
+(s/def ["age"] pos-int?)
 (s/valid? ["age"] 20)     ;; => true
 ```
 
 ### ✅ Map validation
 
 ```clojure
-(s/df :a :int)
-(s/df :b :int)
+(s/def :a :int)
+(s/def :b :int)
 
 (s/valid? {:req [:a :b]} {:a 1 :b 2})           ;; => true
 (s/valid? {:req [:a] :opt [:b]} {:a 1})         ;; => true
