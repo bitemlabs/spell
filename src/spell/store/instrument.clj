@@ -13,3 +13,10 @@
   (get-in
    (deref db)
    [ns_ ident arity dir]))
+
+(comment
+  (deref db)
+  :=> {'spell.core-test
+       {'square {1 {:out :int, :in [:int]}},
+        'sum {1 {:out :int, :in [:int]}, 2 {:out :int, :in [:int :int]}}},
+       'user {'passer {1 {:out :int, :in [:int]}}}})

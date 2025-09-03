@@ -60,8 +60,7 @@
          ~@(for [[args _specs & body] arities]
              (let [arity-n (count args)]
                `(~args
-                 (let [ns# (ns-name *ns*)
-                       path# [ns# '~ident ~arity-n]
+                 (let [path# [(ns-name *ns*) '~ident ~arity-n]
                        in-specs# (store.inst/pull path# :in)
                        out-spec# (store.inst/pull path# :out)
                        level# (store.config/pull :level)
@@ -70,13 +69,15 @@
                      (doall
                       (map (fn [arg# in-spec#]
                              (when-not (valid? in-spec# arg#)
-                               (err-f# (u/err-data :in ns# '~ident ~arity-n
+                               (err-f# (u/err-data :in (ns-name *ns*)
+                                                   '~ident ~arity-n
                                                    arg# in-spec#))))
                            ~args in-specs#)))
                    (let [returned-val# (do ~@body)]
                      (when level#
                        (when-not (valid? out-spec# returned-val#)
-                         (err-f# (u/err-data :out ns# '~ident ~arity-n
+                         (err-f# (u/err-data :out (ns-name *ns*)
+                                             '~ident ~arity-n
                                              returned-val# out-spec#))))
                      returned-val#)))))))))
 
