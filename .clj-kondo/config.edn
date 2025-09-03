@@ -1,2 +1,2 @@
-{:lint-as {spell.core/defnt
+{:lint-as {spell.instrument/defnt
            clojure.core/defn}}

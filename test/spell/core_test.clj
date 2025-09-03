@@ -4,13 +4,6 @@
    [spell.core :as s]
    [spell.utils :as u]))
 
-(t/use-fixtures
-  :once
-  (fn [f]
-    (s/inst!)
-    (f)
-    (s/unst!)))
-
 (t/deftest abbreviation-validation
   (t/is (s/valid? :int 42))
   (t/is (not (s/valid? :int "hi")))
@@ -42,38 +35,6 @@
   (t/is (s/valid? [:set :keyword] #{:a :b}))
   (t/is (not (s/valid? [:set :keyword] #{:a 1}))))
 
-(s/defnt square [x]
-  [:int :=> :int]
-  (* x x))
-
-(t/deftest defnt-single-arity
-  (t/testing "pass"
-    (t/is (= 9 (binding [*ns* (-> #'square meta :ns)]
-                         (square 3)))))
-  (t/testing "fail"
-    (let [err (atom nil)]
-      (with-redefs [u/fail! (fn [_m] (reset! err "!"))]
-        (binding [*ns* (-> #'square meta :ns)]
-          (square 1.2))
-        (t/is (= "!" @err))))))
-
-(s/defnt sum
-  ([a] [:int :=> :int] a)
-  ([a b] [:int :int :=> :int] (+ a b)))
-
-(t/deftest defnt-multi-arity
-  (t/testing "pass"
-    (t/is (= 5 (binding [*ns* (-> #'sum meta :ns)]
-                         (sum 5))))
-    (t/is (= 7 (binding [*ns* (-> #'sum meta :ns)]
-                         (sum 3 4)))))
-  (t/testing "fail"
-    (let [err (atom nil)]
-      (with-redefs [u/fail! (fn [_m] (reset! err "!"))]
-        (binding [*ns* (-> #'sum meta :ns)]
-          (sum 3.2 4.3))
-        (t/is (= "!" @err))))))
-
 (t/deftest coerce-test
   (t/testing "pass"
     (t/is (= 10 (s/coerce :int 10))))
@@ -83,7 +44,8 @@
         (s/coerce :int "bad")
         (t/is (= "!" @err))))))
 
-(s/def :pos #(and (int? %) (pos? %)))
+(s/def :pos
+  #(and (int? %) (pos? %)))
 
 (t/deftest df-custom-spec-test
   (t/testing "pass"
