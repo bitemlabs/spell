@@ -134,7 +134,7 @@ Set the global instrumentation level:
 ```clojure
 (s/inst!)   ;; high — throws on errors
 (s/midst!)  ;; low  — prints errors only
-(s/unst!)   ;; none — disables all checking
+(s/unst!)   ;; none — disables all instrumentation checking
 ```
 
 ---

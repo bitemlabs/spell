@@ -71,7 +71,7 @@
                                                   returned-val# out-spec#))))
                           returned-val#))
                       ;; just run the function body if no inst level
-                      (do ~@body)))))))))
+                      (do ~@body))))))))))
 
 (comment
   (inst!)
