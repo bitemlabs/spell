@@ -17,8 +17,8 @@
   (t/is (s/valid? :string "hello"))
   (t/is (not (s/valid? :string 42))))
 
-(s/df :a :int)
-(s/df :b :int)
+(s/def :a :int)
+(s/def :b :int)
 
 (t/deftest map-spec-validation
   (t/is (s/valid? {:req [:a :b]} {:a 1 :b 2}))
@@ -83,7 +83,7 @@
         (s/coerce :int "bad")
         (t/is (= "!" @err))))))
 
-(s/df :pos #(and (int? %) (pos? %)))
+(s/def :pos #(and (int? %) (pos? %)))
 
 (t/deftest df-custom-spec-test
   (t/testing "pass"

@@ -6,7 +6,7 @@
    [spell.store.predicates :as store.preds]
    [spell.utils :as u]))
 
-(def df store.preds/push!)
+(def def store.preds/push!)
 
 (defn inst! []
   (store.config/level! :high))
