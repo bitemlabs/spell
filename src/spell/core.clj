@@ -64,7 +64,7 @@
                        in-specs# (store.inst/pull path# :in)
                        out-spec# (store.inst/pull path# :out)
                        level# (store.config/pull :level)
-                       err-f# (case level# :high u/fail! :low u/notify)]
+                       err-f# (case level# :high u/fail! :low u/notify nil)]
                    (when level#
                      (doall
                       (map (fn [arg# in-spec#]
