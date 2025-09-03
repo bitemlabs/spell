@@ -1,1 +1,6 @@
-{:paths ["src" "test"]}
+{:paths ["src"]
+ :aliases {:test {:extra-paths ["test"]
+                  :exec-fn clojure.test/run-tests
+                  :exec-args {:dirs ["test"]}}
+           :cljs {:extra-deps {org.clojure/clojurescript {:mvn/version "1.11.121"}}}}}
+

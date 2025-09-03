@@ -1,6 +1,6 @@
 (ns spell.utils
-  (:require
-   [clojure.pprint :as pp]))
+  #?(:clj  (:require [clojure.pprint :as pp])
+     :cljs (:require [cljs.pprint    :as pp])))
 
 (defn nilable-pred [f]
   (fn [spec x]

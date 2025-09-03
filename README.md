@@ -109,6 +109,22 @@ Multi-arity is supported:
 (sum 3 "x")   ;; => throws
 ```
 
+### ClojureScript usage
+
+When targeting ClojureScript, require macros separately:
+
+```clojure
+(ns my.app
+  (:require [spell.core :as s]
+            [spell.instrument :as inst])
+  (:require-macros [spell.instrument :as inst]))
+
+(inst/defnt square
+  [x]
+  [:int :=> :int]
+  (* x x))
+```
+
 ---
 
 ## 🎛️ Instrumentation Levels
