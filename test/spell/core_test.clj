@@ -48,11 +48,13 @@
 
 (t/deftest defnt-single-arity
   (t/testing "pass"
-    (t/is (= 9 (square 3))))
+    (t/is (= 9 (binding [*ns* (-> #'square meta :ns)]
+                         (square 3)))))
   (t/testing "fail"
     (let [err (atom nil)]
       (with-redefs [u/fail! (fn [_m] (reset! err "!"))]
-        (square 1.2)
+        (binding [*ns* (-> #'square meta :ns)]
+          (square 1.2))
         (t/is (= "!" @err))))))
 
 (s/defnt sum
@@ -61,12 +63,15 @@
 
 (t/deftest defnt-multi-arity
   (t/testing "pass"
-    (t/is (= 5 (sum 5)))
-    (t/is (= 7 (sum 3 4))))
+    (t/is (= 5 (binding [*ns* (-> #'sum meta :ns)]
+                         (sum 5))))
+    (t/is (= 7 (binding [*ns* (-> #'sum meta :ns)]
+                         (sum 3 4)))))
   (t/testing "fail"
     (let [err (atom nil)]
       (with-redefs [u/fail! (fn [_m] (reset! err "!"))]
-        (sum 3.2 4.3)
+        (binding [*ns* (-> #'sum meta :ns)]
+          (sum 3.2 4.3))
         (t/is (= "!" @err))))))
 
 (t/deftest coerce-test
