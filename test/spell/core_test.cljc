@@ -1,6 +1,7 @@
 (ns spell.core-test
   (:require
-   [clojure.test :as t]
+   #?(:clj [clojure.test :as t]
+      :cljs [cljs.test :as t :include-macros true])
    [spell.core :as s]
    [spell.utils :as u]))
 

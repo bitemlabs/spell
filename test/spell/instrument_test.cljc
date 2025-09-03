@@ -1,8 +1,10 @@
 (ns spell.instrument-test
-   (:require
-   [clojure.test :as t]
+  (:require
+   #?(:clj [clojure.test :as t]
+      :cljs [cljs.test :as t :include-macros true])
    [spell.instrument :as si]
-   [spell.utils :as u]))
+   [spell.utils :as u])
+  #?(:cljs (:require-macros [spell.instrument :as si])))
 
 (t/use-fixtures
   :once
