@@ -60,26 +60,29 @@
          ~@(for [[args _specs & body] arities]
              (let [arity-n (count args)]
                `(~args
-                 (let [path# [(ns-name *ns*) '~ident ~arity-n]
-                       in-specs# (store.inst/pull path# :in)
-                       out-spec# (store.inst/pull path# :out)
-                       level# (store.config/pull :level)
-                       err-f# (case level# :high u/fail! :low u/notify)]
-                   (when level#
-                     (doall
-                      (map (fn [arg# in-spec#]
-                             (when-not (valid? in-spec# arg#)
-                               (err-f# (u/err-data :in (ns-name *ns*)
-                                                   '~ident ~arity-n
-                                                   arg# in-spec#))))
-                           ~args in-specs#)))
-                   (let [returned-val# (do ~@body)]
+                 (if-let [level# (store.config/pull :level)]
+                   ;; do validation if any inst level
+                   (let [path# [(ns-name *ns*) '~ident ~arity-n]
+                         in-specs# (store.inst/pull path# :in)
+                         out-spec# (store.inst/pull path# :out)
+                         err-f# (case level# :high u/fail! :low u/notify nil)]
                      (when level#
-                       (when-not (valid? out-spec# returned-val#)
-                         (err-f# (u/err-data :out (ns-name *ns*)
-                                             '~ident ~arity-n
-                                             returned-val# out-spec#))))
-                     returned-val#)))))))))
+                       (doall
+                        (map (fn [arg# in-spec#]
+                               (when-not (valid? in-spec# arg#)
+                                 (err-f# (u/err-data :in (ns-name *ns*)
+                                                     '~ident ~arity-n
+                                                     arg# in-spec#))))
+                             ~args in-specs#)))
+                     (let [returned-val# (do ~@body)]
+                       (when level#
+                         (when-not (valid? out-spec# returned-val#)
+                           (err-f# (u/err-data :out (ns-name *ns*)
+                                               '~ident ~arity-n
+                                               returned-val# out-spec#))))
+                       returned-val#))
+                   ;; just run the function body if no inst level
+                   (do ~@body)))))))))
 
 (comment
   (inst!)
