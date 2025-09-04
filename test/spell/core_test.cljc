@@ -57,41 +57,46 @@
     (t/is (not (s/valid? :pos -1)))))
 
 (t/deftest predefs-expanded-test
-  (let [samples {:integer  [1 1.5]
-                 :symbol   ['sym :sym]
-                 :boolean  [true 0]
-                 :float    [(float 1.0) 1.0]
-                 :double   [1.0 1]
-                 :number   [1 "1"]
-                 :ratio    [1/2 0.5]
-                 :bigint   [#?(:clj 1N :cljs 1) 1]
-                 :uuid     [#?(:clj (java.util.UUID/randomUUID)
-                                 :cljs (random-uuid)) "uuid"]
-                 :char     [\a "a"]
-                 :fn       [(fn []) 1]
-                 :map      [{} []]
-                 :vector   [[] {}]
-                 :set      [#{} []]
-                 :list     ['() []]
-                 :seq      [(seq [1]) 1]
-                 :coll     [[] 1]
-                 :seqable  [[] 1]
-                 :sequential [[1 2] #{1}]
-                 :empty    [[] [1]]
-                 :some     [1 nil]
-                 :nil      [nil 1]
-                 :even     [2 1]
-                 :odd      [1 2]
-                 :pos      [1 0]
-                 :neg      [-1 0]
-                 :zero     [0 1]
-                 :pos-int  [1 0]
-                 :neg-int  [-1 1]
-                 :nat-int  [0 -1]}]
+  (let [samples (merge
+                 {:integer  [1 1.5]
+                  :symbol   ['sym :sym]
+                  :boolean  [true 0]
+                  :float    [(float 1.0) 1.0]
+                  :double   [1.0 1]
+                  :number   [1 "1"]
+                  :uuid     [#?(:clj (java.util.UUID/randomUUID)
+                                  :cljs (random-uuid)) "uuid"]
+                  :char     [\a "a"]
+                  :fn       [(fn []) 1]
+                  :map      [{} []]
+                  :vector   [[] {}]
+                  :set      [#{} []]
+                  :list     ['() []]
+                  :seq      [(seq [1]) 1]
+                  :coll     [[] 1]
+                  :seqable  [[] 1]
+                  :sequential [[1 2] #{1}]
+                  :empty    [[] [1]]
+                  :some     [1 nil]
+                  :nil      [nil 1]
+                  :even     [2 1]
+                  :odd      [1 2]
+                  :pos      [1 0]
+                  :neg      [-1 0]
+                  :zero     [0 1]
+                  :pos-int  [1 0]
+                  :neg-int  [-1 1]
+                  :nat-int  [0 -1]
+                  :rational [1 #?(:clj Double/NaN :cljs js/NaN)]}
+                 #?(:clj {:ratio   [1/2 0.5]
+                          :decimal [(bigdec 1) 1.0]}))]
     (doseq [[kw [good bad]] samples]
       (t/testing (str kw)
         (t/is (s/valid? kw good))
-        (t/is (not (s/valid? kw bad)))))))
+        (t/is (not (s/valid? kw bad)))))
+    (t/testing ":any accepts everything"
+      (t/is (s/valid? :any nil))
+      (t/is (s/valid? :any 42)))))
 
 (t/deftest predef-vs-userdef-test
   ;; user-defined spec for :string should not override built-in

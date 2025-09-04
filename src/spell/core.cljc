@@ -12,8 +12,7 @@
    :float    float?
    :double   double?
    :number   number?
-   :ratio    ratio?
-   :bigint   bigint?
+   :ratio    #?(:clj ratio? :cljs (fn [_] false))
    :uuid     uuid?
    :char     char?
    :fn       fn?
@@ -35,7 +34,10 @@
    :zero     zero?
    :pos-int  pos-int?
    :neg-int  neg-int?
-   :nat-int  nat-int?})
+   :nat-int  nat-int?
+   :rational rational?
+   :decimal  #?(:clj decimal? :cljs (fn [_] false))
+   :any      any?})
 
 (defonce ^:private userdefs
   (atom {}))
