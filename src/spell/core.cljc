@@ -3,41 +3,15 @@
    [spell.utils :as u]))
 
 (def predefs
-  {:int      int?
-   :integer  integer?
-   :string   string?
-   :keyword  keyword?
-   :symbol   symbol?
-   :boolean  boolean?
-   :float    float?
-   :double   double?
-   :number   number?
-   :ratio    #?(:clj ratio? :cljs (fn [_] false))
-   :uuid     uuid?
-   :char     char?
-   :fn       fn?
-   :map      map?
-   :vector   vector?
-   :set      set?
-   :list     list?
-   :seq      seq?
-   :coll     coll?
-   :seqable  seqable?
-   :sequential sequential?
-   :empty    empty?
-   :some     some?
-   :nil      nil?
-   :even     even?
-   :odd      odd?
-   :pos      pos?
-   :neg      neg?
-   :zero     zero?
-   :pos-int  pos-int?
-   :neg-int  neg-int?
-   :nat-int  nat-int?
-   :rational rational?
-   :decimal  #?(:clj decimal? :cljs (fn [_] false))
-   :any      any?})
+  {:any any? :int int? :integer integer? :string string?
+   :keyword keyword? :symbol symbol? :boolean boolean?
+   :float float? :double double? :number number?
+   :uuid uuid? :char char? :fn fn? :map map?
+   :vector vector? :set set? :list list? :seq seq?
+   :coll coll? :seqable seqable? :sequential sequential?
+   :empty empty? :some some? :nil nil? :even even?
+   :odd odd? :pos pos? :neg neg? :zero zero?
+   :pos-int pos-int? :neg-int neg-int? :nat-int nat-int?})
 
 (defonce ^:private userdefs
   (atom {}))
