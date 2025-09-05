@@ -79,7 +79,7 @@
     (if (and lv (not (s/valid? kw v)))
       (let [err-f (case lv :high u/fail!
                         :low u/notify nil)]
-        (err-f {:spec kw :value v}))
+        (err-f {:spec kw :value v}) v)
       v)))
 
 (defmacro tlet
