@@ -2,7 +2,7 @@
   (:require
    #?(:clj [clojure.test :as t]
       :cljs [cljs.test :as t :include-macros true])
-   [spell.instrument :as si]
+   [spell.instrument :as si :refer [defnt]]
    [spell.utils :as u])
   #?(:cljs (:require-macros [spell.instrument :as si])))
 
@@ -12,7 +12,7 @@
     (si/inst!)
     (f)))
 
-(si/defnt square [x]
+(defnt square [x]
   [:int :=> :int]
   (* x x))
 
@@ -26,7 +26,7 @@
           (square 1.2)
           (t/is (= "!" @err)))))))
 
-(si/defnt sum
+(defnt sum
   ([a] [:int :=> :int] a)
   ([a b] [:int :int :=> :int] (+ a b)))
 

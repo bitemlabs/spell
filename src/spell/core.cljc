@@ -46,7 +46,7 @@
                              (u/fail! {:spec spec :value v})))
           :else (u/fail! {:spec spec :value v}))))
 
-(defn coerce [kw v]
+(defn coerce! [kw v]
   (when-not (valid? kw v)
     (u/fail! {:spec kw :value v}))
   v)
