@@ -129,6 +129,119 @@ When targeting ClojureScript, require macros separately:
 
 ---
 
+## Validate local bindings with `tlet`
+
+`tlet` is a `let`-style macro that validates each binding against a spec **as it’s bound**. If any binding fails under strict instrumentation, evaluation short-circuits before the body runs. It’s a lightweight way to assert invariants for intermediate values, pipelines, or destructured data.
+
+**Syntax**
+
+```clj
+(s/tlet [binding-form  spec  value
+         binding-form2 spec2 value2
+         ...]
+  ;; body that can use the validated locals
+  ...)
+```
+
+- `binding-form` can be a symbol or a destructuring form (vector/map), just like `let`.
+- `spec` can be **anything you’d pass to `s/valid?`**: keywords/strings/vectors you’ve defined via `s/def`, map specs with `:req`/`:opt`, logical forms like `[:or ...]` / `[:and ...]`, or collection specs like `[:vector :int]`.
+
+### Examples
+
+**Single binding**
+
+```clj
+(require '[spell.core :as s])
+
+(s/def :int int?)
+
+(s/tlet [x :int 9]
+  (+ x 1))
+;; => 10  (valid)
+```
+
+**Chained bindings (later bindings can reference earlier ones)**
+
+```clj
+(s/tlet [a :int 3
+         b :int (+ a 4)]
+  (* a b))
+;; => 21
+```
+
+**Vector destructuring + collection spec**
+
+```clj
+(s/tlet [[x y] [:vector :int] [2 5]]
+  (- y x))
+;; => 3
+```
+
+**Map destructuring + map spec**
+
+```clj
+(s/def :a :int)
+(s/def :b :int)
+
+(s/tlet [{:keys [a b]} {:req [:a :b]} {:a 2 :b 8}]
+  (/ b a))
+;; => 4
+```
+
+**Logical and string-named specs**
+
+```clj
+(s/def ["age"] pos-int?)
+
+(s/tlet [age ["age"] 20
+         s   [:or :string :int] "ok"]
+  (str age "-" s))
+;; => "20-ok"
+```
+
+### Instrumentation behavior
+
+`tlet` respects the global instrumentation level you set elsewhere in Spell:
+
+```clj
+(s/inst!)   ;; :high — throws on errors
+(s/midst!)  ;; :low  — prints validation info
+(s/unst!)   ;; :none — disables checks
+```
+
+| Level   | On invalid binding                          | Body runs? |
+|---------|---------------------------------------------|------------|
+| `:high` | Throws with detailed context                | No         |
+| `:low`  | Prints validation details, returns the body | Yes        |
+| `:none` | Skips validation entirely                   | Yes        |
+
+> Tip: Because validation happens **per binding**, failures are reported at the exact binding that didn’t conform, which makes debugging fast and local.
+
+### ClojureScript usage
+
+Just like `defnt`, use the macro from `spell.instrument` when compiling to CLJS:
+
+```clj
+(ns my.app
+  (:require [spell.core :as s]
+            [spell.instrument :as inst])
+  (:require-macros [spell.instrument :as inst]))
+
+(inst/tlet [x :int 5
+            y :int (+ x 1)]
+  [x y])
+;; => [5 6]
+```
+
+(For Clojure/JVM you can call `s/tlet` directly; for CLJS, require the macro namespace as above—same pattern as in the `defnt` example.)
+
+### Gotchas
+
+- The binding vector must be in **triples**: `binding-form spec value`. A malformed binding vector will raise an error.
+- Your specs must already be registered (e.g., via `s/def`) if you use named specs like `:int` or `["age"]`.
+
+---
+
 ## 🎛️ Instrumentation Levels
 
 Set the global instrumentation level:
