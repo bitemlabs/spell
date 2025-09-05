@@ -40,11 +40,11 @@
 
 (t/deftest coerce-test
   (t/testing "pass"
-    (t/is (= 10 (s/coerce :int 10))))
+    (t/is (= 10 (s/coerce! :int 10))))
   (t/testing "fail"
     (let [err (atom nil)]
       (with-redefs [u/fail! (fn [_m] (reset! err "!"))]
-        (s/coerce :int "bad")
+        (s/coerce! :int "bad")
         (t/is (= "!" @err))))))
 
 (s/def :pos

@@ -73,6 +73,31 @@
                       ;; just run the function body if no inst level
                       (do ~@body))))))))))
 
+
+(defn inst-coerce! [kw v]
+  (let [lv (deref *level*)]
+    (if (and lv (not (s/valid? kw v)))
+      (let [err-f (case lv :high u/fail!
+                        :low u/notify nil)]
+        (err-f {:spec kw :value v}) v)
+      v)))
+
+(defmacro tlet
+  [bindings & body]
+  (let [pairs
+        (->> (partition 3 bindings)
+             (mapcat (fn [[sym spec value]]
+                       [sym `(inst-coerce!
+                              ~spec ~value)])))]
+    `(let [~@pairs]
+       ~@body)))
+
+(comment
+  (tlet [a :int 1.2]
+    (inc a))
+;; when *level* is :low, error is thrown, why?
+  )
+
 (comment
   (inst!)
   (midst!)
