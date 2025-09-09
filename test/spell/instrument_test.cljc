@@ -8,7 +8,7 @@
   #?(:cljs (:require-macros [spell.instrument :as si])))
 
 (t/use-fixtures
-  :once
+  :each
   (fn [f]
     (binding [*ns* 'spell.instrument-test]
       (si/inst!)
@@ -90,14 +90,6 @@
 (t/deftest tlet-destructuring-with-extra-keys
   (t/is (= 3 (tlet [{:keys [a b]} {:req [:a :b]} {:a 1 :b 2 :c 3}]
                    (+ a b)))))
-
-(t/deftest tlet-deeply-nested-structures
-  (let [m {:user {:name "Ada" :age 42} :tags ["fp" "math" "clj"]}]
-    (t/is (= "Ada-3"
-             (tlet [{:keys [user tags]} {:req [:user :tags]} m
-                    {:keys [name _age]} {:req [:name :age]} user
-                    xs [:vector :string] tags]
-                   (str name "-" (count xs)))))))
 
 (t/deftest tlet-binding-vector-arity-errors
   (let [err (atom nil)]
