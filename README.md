@@ -19,7 +19,7 @@
   - ✅ Qualified or unqualified keywords
   - ✅ Strings
   - ✅ Vectors
-- 🔧 **Minimal, expressive instrumentation via `defnt`**
+- 🔧 **Minimal, expressive instrumentation via `tdefn`**
 - 🎚️ **Configurable instrumentation**:
   - `:high` — throws on invalid input/output
   - `:low` — prints validation info
@@ -85,12 +85,12 @@ Specs are not limited to keywords—you can also target strings and vectors:
 
 ---
 
-## 🔁 Instrumentation with `defnt`
+## 🔁 Instrumentation with `tdefn`
 
-Use `defnt` to define functions with validation on inputs and outputs.
+Use `tdefn` to define functions with validation on inputs and outputs.
 
 ```clojure
-(s/defnt square
+(s/tdefn square
   [x]
   [:int :=> :int]
   (* x x))
@@ -102,7 +102,7 @@ Use `defnt` to define functions with validation on inputs and outputs.
 Multi-arity is supported:
 
 ```clojure
-(s/defnt sum
+(s/tdefn sum
   ([a] [:int :=> :int] a)
   ([a b] [:int :int :=> :int] (+ a b)))
 
@@ -121,7 +121,7 @@ When targeting ClojureScript, require macros separately:
             [spell.instrument :as inst])
   (:require-macros [spell.instrument :as inst]))
 
-(inst/defnt square
+(inst/tdefn square
   [x]
   [:int :=> :int]
   (* x x))
@@ -219,7 +219,7 @@ When targeting ClojureScript, require macros separately:
 
 ### ClojureScript usage
 
-Just like `defnt`, use the macro from `spell.instrument` when compiling to CLJS:
+Just like `tdefn`, use the macro from `spell.instrument` when compiling to CLJS:
 
 ```clj
 (ns my.app
@@ -233,7 +233,7 @@ Just like `defnt`, use the macro from `spell.instrument` when compiling to CLJS:
 ;; => [5 6]
 ```
 
-(For Clojure/JVM you can call `s/tlet` directly; for CLJS, require the macro namespace as above—same pattern as in the `defnt` example.)
+(For Clojure/JVM you can call `s/tlet` directly; for CLJS, require the macro namespace as above—same pattern as in the `tdefn` example.)
 
 ### Gotchas
 
@@ -259,7 +259,7 @@ Set the global instrumentation level:
 Run the tests:
 
 ```bash
-clojure -X:test
+clj -X:test
 ```
 
 ---

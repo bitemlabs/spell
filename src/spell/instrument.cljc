@@ -33,7 +33,7 @@
   (level! nil))
 
 #?(:clj
-   (defmacro defnt
+   (defmacro tdefn
      [ident & fn-tail]
      (let [arities (if (u/single-arity? fn-tail) [fn-tail] fn-tail)
            reg-forms

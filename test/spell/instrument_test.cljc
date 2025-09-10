@@ -3,7 +3,7 @@
    #?(:clj [clojure.test :as t]
       :cljs [cljs.test :as t :include-macros true])
    [spell.core :as s]
-   [spell.instrument :as si :refer [defnt tlet]]
+   [spell.instrument :as si :refer [tdefn tlet]]
    [spell.utils :as u])
   #?(:cljs (:require-macros [spell.instrument :as si])))
 
@@ -15,11 +15,11 @@
       (f)
       (si/unst!))))
 
-(defnt square [x]
+(tdefn square [x]
   [:int :=> :int]
   (* x x))
 
-(defnt sum
+(tdefn sum
   ([a] [:int :=> :int] a)
   ([a b] [:int :int :=> :int] (+ a b)))
 
@@ -27,7 +27,7 @@
 (s/def :b :int)
 (s/def ["age"] pos-int?)
 
-(t/deftest defnt-single-arity
+(t/deftest tdefn-single-arity
   (t/testing "pass"
     (t/is (= 9 (square 3))))
   (t/testing "fail"
@@ -36,7 +36,7 @@
         (square 1.2)
         (t/is (= "!" @err))))))
 
-(t/deftest defnt-multi-arity
+(t/deftest tdefn-multi-arity
   (t/testing "pass"
     (t/is (= 5 (sum 5)))
     (t/is (= 7 (sum 3 4))))
