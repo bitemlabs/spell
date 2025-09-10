@@ -1,8 +1,5 @@
 {:paths ["src"]
  :aliases {:test {:extra-paths ["test"]
                   :exec-fn clojure.test/run-tests
-                  :exec-args {:dirs ["test"]}}
-           :cljs {:extra-deps {org.clojure/clojurescript {:mvn/version "1.11.121"}}}
-           :shadow {:extra-deps {thheller/shadow-cljs {:mvn/version "2.28.3"}}
-                    :main-opts ["-m" "shadow.cljs.devtools.cli"]}}}
+                  :exec-args {:dirs ["test"]}}}}
 

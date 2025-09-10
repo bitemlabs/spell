@@ -1,4 +1,4 @@
 {:source-paths ["src" "test"]
- :dependencies []
+ :dependencies [[org.clojure/clojurescript "1.11.121"]]
  :builds {:app {:target :node-repl}}}
 
