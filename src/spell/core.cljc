@@ -43,6 +43,7 @@
                              :vector (and (vector? v) (every? pred-a v))
                              :list (and (list? v) (every? pred-a v))
                              :set (and (set? v) (every? pred-a v))
+                             :enum (contains? (set col) v)
                              (u/fail! {:spec spec :value v})))
           :else (u/fail! {:spec spec :value v}))))
 
