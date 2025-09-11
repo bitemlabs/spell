@@ -22,7 +22,12 @@
 (defn- push! [kw thing]
   (swap! userdefs assoc kw thing))
 
+(defn- drop! [kw]
+  (swap! userdefs dissoc kw))
+
 (def def push!)
+
+(def undef drop!)
 
 (defn valid? [spec v]
   (let [predef-fn (get predefs spec)

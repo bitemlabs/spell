@@ -33,7 +33,6 @@
 Use `s/def` to associate a spec with a keyword, string, or vector.  The
 registration is mutable, so redefining a name updates the spec at runtime.
 Once defined, validate values with `s/valid?`:
-
 ```clojure
 (require '[spell.core :as s])
 
@@ -45,10 +44,14 @@ Once defined, validate values with `s/valid?`:
 ```
 
 Specs are not limited to keywords—you can also target strings and vectors:
-
 ```clojure
 (s/def ["age"] pos-int?)
 (s/valid? ["age"] 20)     ;; => true
+```
+
+Rarely, but if you want to remove a spec:
+```clojure
+(s/undef ["age"]?)
 ```
 
 ### ✅ Map validation
