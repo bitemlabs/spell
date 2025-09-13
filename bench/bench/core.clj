@@ -15,10 +15,8 @@
    :age 35})
 
 (def invalid-user
-  {:id "oops"        ;; not int
-   :name 777         ;; not string
-   ;; :age missing
-   })
+  {:id "oops"
+   :name 777})
 
 ;; ----------------------------
 ;; clojure.spec schema + valid?
