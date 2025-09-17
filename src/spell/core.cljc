@@ -14,21 +14,22 @@
    :odd odd? :pos pos? :neg neg? :zero zero?
    :pos-int pos-int? :neg-int neg-int? :nat-int nat-int?})
 
+(declare compile!)
+
 (defonce ^:private userdefs
   (atom {}))
 
 (defonce ^:private compiled
   (atom {}))
 
-(defn define [k thing]
-  (swap! userdefs assoc k thing)
-  (swap! compiled dissoc k))
-
 (defn- cache! [k v]
   (swap! compiled assoc k v)
   v)
 
-(declare compile!)
+(defn define [k thing]
+  (swap! userdefs assoc k thing)
+  (compile! k)
+  true)
 
 (defn ^:private logical-and [preds]
   (let [preds ^objects (into-array IFn preds)
@@ -41,7 +42,7 @@
             (recur (unchecked-inc-int i))
             false))))))
 
-(defn ^:private logical-or [preds]
+(defn- logical-or [preds]
   (let [preds ^objects (into-array IFn preds)
         cnt (alength preds)]
     (fn [v]
@@ -51,48 +52,60 @@
           (.invoke ^IFn (aget preds i) v) true
           :else (recur (unchecked-inc-int i)))))))
 
-(defn logical-pred [k xs]
+(defn- logical-pred [k xs]
   (let [preds (mapv compile! xs)]
     (case k
       :or (logical-or preds)
       :and (logical-and preds))))
 
-(defn collection-pred [col-type-f xs]
+(defn- collection-pred [col-type-f xs]
   (let [elem-pred ^IFn (compile! (first xs))]
     (fn [v]
       (and (col-type-f v)
            (if (vector? v)
-             ;; indexed loop – avoids seq/boxing
              (let [^IPersistentVector vv v
                    cnt (count vv)]
                (loop [i 0]
-                 (if (= i cnt)
-                   true
+                 (if (= i cnt) true
                    (if (.invoke elem-pred (nth vv i))
                      (recur (unchecked-inc-int i))
                      false))))
-             ;; generic seq loop
              (loop [s (seq v)]
-               (if (nil? s)
-                 true
+               (if (nil? s) true
                  (if (.invoke elem-pred (first s))
                    (recur (next s))
                    false))))))))
 
-(defn map-pred [{:keys [req]}]
-  (let [ks (object-array req)
-        ps (object-array (map compile! req))
-        cnt (alength ks)]
+(defn- map-pred [{:keys [req opt]}]
+  (let [req (or req []) opt (or opt [])
+        req-ks (object-array req)
+        req-ps (object-array (map compile! req))
+        req-cnt (alength req-ks)
+        opt-ks (object-array opt)
+        opt-ps (object-array (map compile! opt))
+        opt-cnt (alength opt-ks)]
     (fn [m]
       (and (map? m)
+           ;; required keys: must be present AND pass predicate
            (loop [i 0]
-             (if (= i cnt)
-               true
-               (let [k (aget ks i)
-                     p ^IFn (aget ps i)]
-                 (if (.invoke p (get m k))
-                   (recur (unchecked-inc-int i))
-                   false))))))))
+             (if (= i req-cnt) true
+                 (let [k (aget req-ks i)
+                       ^clojure.lang.IFn p (aget req-ps i)]
+                   (if (and (contains? m k)
+                            (.invoke p (get m k)))
+                     (recur (unchecked-inc-int i))
+                     false))))
+           ;; optional keys: if present and non-nil, must pass predicate.
+           ;; if absent, OK. if present but nil, OK (per your current rule).
+           (loop [i 0]
+             (if (= i opt-cnt) true
+                 (let [k (aget opt-ks i)
+                       ^clojure.lang.IFn p (aget opt-ps i)]
+                   (if-let [v (get m k)]
+                     (if (or (nil? v) (.invoke p v))
+                       (recur (unchecked-inc-int i))
+                       false)
+                     (recur (unchecked-inc-int i))))))))))
 
 (defn compile! [x]
   (or (get @compiled x)

@@ -156,7 +156,7 @@
         (doseq [[case-key valid-k invalid-k] cases
                 {:keys [lib table]} libs
                 :let [vf (get table case-key)
-                      v-valid   (samples valid-k)
+                      v-valid (samples valid-k)
                       v-invalid (samples invalid-k)]
                 validity [:valid :invalid]
                 :let [v (if (= validity :valid) v-valid v-invalid)

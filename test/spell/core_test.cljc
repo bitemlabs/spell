@@ -53,6 +53,10 @@
     (t/is (s/valid? {:req [:my.app/a] :opt [:my.app/b]}
                     {:my.app/a 1 :my.app/b 2}))
     (t/is (not (s/valid? {:req [:my.app/a] :opt [:my.app/b]}
+                         {:my.app/a 1 :my.app/b "2"})))
+    (t/is (s/valid? {:req [:my.app/a] :opt [:my.app/b]}
+                    {:my.app/a 1 :my.app/b 2}))
+    (t/is (not (s/valid? {:req [:my.app/a] :opt [:my.app/b]}
                          {:my.app/b 1}))))
   (t/testing "unqualified maps"
     (s/define :a :int)
