@@ -36,8 +36,8 @@ Like `clojure.spec`, the primary way to define specs is with **qualified keyword
 ```clojure
 (require '[spell.core :as s])
 
-(s/def :my.app/int int?)
-(s/def :my.app/string string?)
+(s/define :my.app/int int?)
+(s/define :my.app/string string?)
 
 (s/valid? :my.app/int 42)       ;; => true
 (s/valid? :my.app/int "oops")   ;; => false
@@ -49,15 +49,15 @@ While qualified keywords are the idiomatic choice, Spell also lets you attach sp
 
 ```clojure
 ;; Unqualified keyword
-(s/def :int int?)
+(s/define :int int?)
 (s/valid? :int 42)             ;; => true
 
 ;; String
-(s/def ["age"] pos-int?)
+(s/define ["age"] pos-int?)
 (s/valid? ["age"] 20)          ;; => true
 
 ;; Vector
-(s/def [:coords] [:vector int?])
+(s/define [:coords] [:vector int?])
 (s/valid? [:coords] [1 2 3])   ;; => true
 ```
 
@@ -72,8 +72,8 @@ Rarely, but if you want to remove a spec:
 ### ✅ Map validation
 
 ```clojure
-(s/def :my.app/a :int)
-(s/def :my.app/b :int)
+(s/define :my.app/a :int)
+(s/define :my.app/b :int)
 
 (s/valid? {:req [:my.app/a :my.app/b]} {:my.app/a 1 :my.app/b 2})
 ;; => true
@@ -146,8 +146,8 @@ Multi-arity is supported:
 This works seamlessly with qualified keywords, but also supports all other forms (unqualified keywords, strings, vectors, maps, etc.).
 
 ```clojure
-(s/def :my.app/int int?)
-(s/def ["age"] pos-int?)
+(s/define :my.app/int int?)
+(s/define ["age"] pos-int?)
 
 (s/tlet [x :my.app/int 9
          y ["age"] 20]
