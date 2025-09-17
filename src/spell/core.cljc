@@ -16,32 +16,58 @@
 (defonce ^:private userdefs
   (atom {}))
 
-(defn- pull [id]
-  (get (deref userdefs) id))
+(defonce ^:private compiled
+  (atom {}))
 
-(defn- push! [kw thing]
-  (swap! userdefs assoc kw thing))
+(defn def [k thing]
+  (swap! userdefs assoc k thing)
+  (swap! compiled dissoc k))
 
-(def def push!)
+(defn- cache! [k v]
+  (swap! compiled assoc k v)
+  v)
+
+(declare compile!)
+
+(defn logical-pred [agg-f xs]
+  (let [preds (mapv compile! xs)]
+    (fn [v] (agg-f #(% v) preds))))
+
+(defn collection-pred [col-type-f xs]
+  (let [elem-pred (compile! (first xs))]
+    (fn [v] (and (col-type-f v)
+                 (every? elem-pred v)))))
+
+(defn map-pred [{:keys [req]}]
+  (let [req-preds (mapv (fn [k] [k (compile! k)]) req)]
+    (fn [m]
+      (and (map? m)
+           (every? (fn [[k p]] (p (get m k))) req-preds)))))
+
+(defn compile! [x]
+  (or (get @compiled x)
+      (let [pre-fn (get predefs x)
+            userdef (get @userdefs x)]
+        (cache!
+         x (cond (fn? x) x
+                 pre-fn pre-fn
+                 userdef (if (fn? userdef) userdef
+                             (compile! userdef))
+                 (vector? x) (let [[op & xs] x]
+                               (case op
+                                 :or (logical-pred some xs)
+                                 :and (logical-pred every? xs)
+                                 :vector (collection-pred vector? xs)
+                                 :list (collection-pred list? xs)
+                                 :set (collection-pred set? xs)
+                                 :enum #(contains? (set xs) %)
+                                 (fn [_] false)))
+                 (map? x) (map-pred x)
+                 :else #(u/fail! {:spec x}))))))
 
 (defn valid? [spec v]
-  (cond (fn? spec) (spec v)
-        (get predefs spec) ((get predefs spec) v)
-        (pull spec) (valid? (pull spec) v)
-        (map? spec) (let [{:keys [req opt]} spec]
-                      (and (every? #(valid? % (get v %)) req)
-                           (every? #(let [val (get v %)]
-                                      (or (nil? val) (valid? % val))) opt)))
-        (vector? spec) (let [[op & [a :as col]] spec]
-                         (case op
-                           :or (some #(valid? % v) col)
-                           :and (every? #(valid? % v) col)
-                           :vector (and (vector? v) (every? #(valid? a %) v))
-                           :list (and (list? v) (every? #(valid? a %) v))
-                           :set (and (set? v) (every? #(valid? a %) v))
-                           :enum (contains? (set col) v)
-                           (u/fail! {:spec spec :value v})))
-        :else (u/fail! {:spec spec :value v})))
+  (let [pred (compile! spec)]
+    (pred v)))
 
 (defn coerce! [kw v]
   (when-not (valid? kw v)

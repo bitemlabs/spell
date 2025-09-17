@@ -90,3 +90,10 @@
   (t/testing "user-defined used when no predef"
     (t/is (s/valid? :life 42))
     (t/is (not (s/valid? :life 0)))))
+
+
+(s/def :person/name :string)
+(s/valid? :person/name "12312sdfasdf")
+(s/valid? [:or :int :string] 1)
+(s/valid? [:and :int #(< % 18)] 89)
+(s/valid? {:req [:person/name]} {:person/name 123})
