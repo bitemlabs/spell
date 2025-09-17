@@ -10,7 +10,8 @@
 ;; silent microbench helpers
 ;; -----------------------------
 
-(defn- now-ns ^long [] (System/nanoTime))
+(defn- now-ns ^long []
+  (System/nanoTime))
 
 (defn- warmup! [f n]
   (loop [i (long 0)]
@@ -37,51 +38,35 @@
 ;; -----------------------------
 
 (def samples
-  {:int-valid       42
-   :int-invalid     "x"
-   :string-valid    "Ada"
-   :string-invalid  777
-   :keyword-valid   :ok
-   :keyword-invalid "ok"
-
-   :and-valid       5          ;; int? & pos-int?
-   :and-invalid     -3
-   :or-valid        "yo"       ;; string? or int?
-   :or-invalid      :nope
-
-   :vector-valid    [1 2 3 4 5]
-   :vector-invalid  [1 "x" 3]
-   :list-valid      '(1 2 3)
-   :list-invalid    '(1 :x 3)
-   :set-valid       #{:a :b :c}
-   :set-invalid     #{:a "b" :c}
-
-   :map-valid       {:id 1 :name "Ada" :age 35}
-   :map-invalid     {:id "oops" :name 777}})
+  {:int-valid 42 :int-invalid "x"
+   :string-valid "Ada" :string-invalid 777
+   :keyword-valid :ok :keyword-invalid "ok"
+   :and-valid 5 :and-invalid -3 :or-valid "yo"
+   :or-invalid :nope :vector-valid [1 2 3 4 5]
+   :vector-invalid [1 "x" 3] :list-valid '(1 2 3)
+   :list-invalid '(1 :x 3) :set-valid #{:a :b :c}
+   :set-invalid #{:a "b" :c}
+   :map-valid {:id 1 :name "Ada" :age 35}
+   :map-invalid {:id "oops" :name 777}})
 
 ;; -----------------------------
 ;; Spec validators
 ;; -----------------------------
 
 (def spec-validators
-  {;; raw
-   :raw-int     (fn [v] (s/valid? int? v))
-   :raw-string  (fn [v] (s/valid? string? v))
+  {:raw-int (fn [v] (s/valid? int? v))
+   :raw-string (fn [v] (s/valid? string? v))
    :raw-keyword (fn [v] (s/valid? keyword? v))
-   ;; and / or
-   :and         (fn [v] (s/valid? (s/and int? pos-int?) v))
-   :or          (fn [v] (s/valid? (s/or :s string? :i int?) v))
-   ;; collections
-   :vector      (fn [v] (s/valid? (s/coll-of int? :kind vector?) v))
-   :list        (fn [v] (s/valid? (s/coll-of int? :kind list?) v))
-   :set         (fn [v] (s/valid? (s/coll-of keyword? :kind set? :distinct true) v))
-   ;; map
-   :map         (do
-                  (s/def ::id int?)
-                  (s/def ::name string?)
-                  (s/def ::age int?)
-                  (let [spec (s/keys :req-un [::id ::name ::age])]
-                    (fn [v] (s/valid? spec v))))})
+   :and (fn [v] (s/valid? (s/and int? pos-int?) v))
+   :or (fn [v] (s/valid? (s/or :s string? :i int?) v))
+   :vector (fn [v] (s/valid? (s/coll-of int? :kind vector?) v))
+   :list (fn [v] (s/valid? (s/coll-of int? :kind list?) v))
+   :set (fn [v] (s/valid? (s/coll-of keyword? :kind set? :distinct true) v))
+   :map (do (s/def ::id int?)
+            (s/def ::name string?)
+            (s/def ::age int?)
+            (let [spec (s/keys :req-un [::id ::name ::age])]
+              (fn [v] (s/valid? spec v))))})
 
 ;; -----------------------------
 ;; Malli validators (compiled)
@@ -89,18 +74,18 @@
 
 (def malli-validators
   (let [v (fn [schema] (m/validator schema))]
-    {:raw-int     (v int?)
-     :raw-string  (v string?)
+    {:raw-int (v int?)
+     :raw-string (v string?)
      :raw-keyword (v keyword?)
-     :and         (v [:and int? pos-int?])
-     :or          (v [:or string? int?])
-     :vector      (v [:vector int?])
-     :list        (v [:sequential int?])
-     :set         (v [:set keyword?])
-     :map         (v [:map
-                      [:id int?]
-                      [:name string?]
-                      [:age int?]])}))
+     :and (v [:and int? pos-int?])
+     :or (v [:or string? int?])
+     :vector (v [:vector int?])
+     :list (v [:sequential int?])
+     :set (v [:set keyword?])
+     :map (v [:map
+              [:id int?]
+              [:name string?]
+              [:age int?]])}))
 
 ;; -----------------------------
 ;; Spell validators (compiled)
@@ -112,42 +97,38 @@
 (spell/define :user {:req [:id :name :age]})
 
 (def spell-validators
-  {;; raw
-   :raw-int     (fn [v] (spell/valid? :int v))
+  {:raw-int (fn [v] (spell/valid? :int v))
    :raw-string  (fn [v] (spell/valid? :string v))
    :raw-keyword (fn [v] (spell/valid? :keyword v))
-   ;; and / or
-   :and         (let [schema [:and :int :pos-int]]
-                  (fn [v] (spell/valid? schema v)))
-   :or          (let [schema [:or :string :int]]
-                  (fn [v] (spell/valid? schema v)))
-   ;; collections
-   :vector      (let [schema [:vector :int]]
-                  (fn [v] (spell/valid? schema v)))
-   :list        (let [schema [:list :int]]
-                  (fn [v] (spell/valid? schema v)))
-   :set         (let [schema [:set :keyword]]
-                  (fn [v] (spell/valid? schema v)))
-   ;; map
-   :map         (fn [v] (spell/valid? :user v))})
+   :and (let [schema [:and :int :pos-int]]
+          (fn [v] (spell/valid? schema v)))
+   :or (let [schema [:or :string :int]]
+         (fn [v] (spell/valid? schema v)))
+   :vector (let [schema [:vector :int]]
+             (fn [v] (spell/valid? schema v)))
+   :list (let [schema [:list :int]]
+           (fn [v] (spell/valid? schema v)))
+   :set (let [schema [:set :keyword]]
+          (fn [v] (spell/valid? schema v)))
+   :map (fn [v] (spell/valid? :user v))})
 
 ;; -----------------------------
 ;; matrix + runner
 ;; -----------------------------
 
 (def cases
-  [[:raw-int     :int-valid     :int-invalid]
-   [:raw-string  :string-valid  :string-invalid]
+  [[:raw-int :int-valid :int-invalid]
+   [:raw-string :string-valid :string-invalid]
    [:raw-keyword :keyword-valid :keyword-invalid]
-   [:and         :and-valid     :and-invalid]
-   [:or          :or-valid      :or-invalid]
-   [:vector      :vector-valid  :vector-invalid]
-   [:list        :list-valid    :list-invalid]
-   [:set         :set-valid     :set-invalid]
-   [:map         :map-valid     :map-invalid]])
+   [:and :and-valid :and-invalid]
+   [:or :or-valid :or-invalid]
+   [:vector :vector-valid :vector-invalid]
+   [:list :list-valid :list-invalid]
+   [:set :set-valid :set-invalid]
+   [:map :map-valid :map-invalid]])
 
 (def libs
-  [{:lib :spec  :table spec-validators}
+  [{:lib :spec :table spec-validators}
    {:lib :malli :table malli-validators}
    {:lib :spell :table spell-validators}])
 
@@ -160,7 +141,8 @@
 
 (defn- row
   [{:keys [lib]} case-key validity iters avg total]
-  [(name lib) (name case-key) (name validity) iters avg total])
+  [(name lib) (name case-key)
+   (name validity) iters avg total])
 
 (defn -main [& _]
   (println "Start microbench…")
@@ -168,7 +150,8 @@
   (let [outfile (io/file "resources" "bench.csv")]
     (io/make-parents outfile)
     (with-open [w (io/writer outfile)]
-      (csv/write-csv w [["lib" "case" "validity" "iterations" "avg_ns" "total_ns"]])
+      (csv/write-csv w [["lib" "case" "validity"
+                         "iterations" "avg_ns" "total_ns"]])
       (let [iters (long 100000)]
         (doseq [[case-key valid-k invalid-k] cases
                 {:keys [lib table]} libs
@@ -177,10 +160,11 @@
                       v-invalid (samples invalid-k)]
                 validity [:valid :invalid]
                 :let [v (if (= validity :valid) v-valid v-invalid)
-                      {:keys [avg_ns total_ns iters]} (bench-avg-ns #(vf v) iters)]]
-          (csv/write-csv w [(row {:lib lib} case-key validity iters avg_ns total_ns)])))))
+                      {:keys [avg_ns total_ns iters]}
+                      (bench-avg-ns #(vf v) iters)]]
+          (csv/write-csv w [(row {:lib lib} case-key
+                                 validity iters avg_ns total_ns)])))))
   (println "Done."))
 
 (comment
-  (-main {})
-  )
+  (-main {}))
