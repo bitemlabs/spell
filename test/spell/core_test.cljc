@@ -13,8 +13,8 @@
   (t/is (s/valid? :keyword :foo))
   (t/is (not (s/valid? :keyword "foo"))))
 
-(s/def :a :int)
-(s/def :b :int)
+(s/define :a :int)
+(s/define :b :int)
 
 (t/deftest map-spec-validation
   (t/is (s/valid? {:req [:a :b]} {:a 1 :b 2}))
@@ -49,7 +49,7 @@
         (s/coerce! :int "bad")
         (t/is (= "!" @err))))))
 
-(s/def :pos
+(s/define :pos
   #(and (int? %) (pos? %)))
 
 (t/deftest df-custom-spec-test
@@ -82,8 +82,8 @@
 
 (t/deftest predef-vs-userdef-test
   ;; user-defined spec for :string should not override built-in
-  (s/def :string (constantly false))
-  (s/def :life #(= 42 %))
+  (s/define :string (constantly false))
+  (s/define :life #(= 42 %))
   (t/testing "predef wins"
     (t/is (s/valid? :string "hi"))
     (t/is (not (s/valid? :string 1))))
@@ -92,7 +92,7 @@
     (t/is (not (s/valid? :life 0)))))
 
 
-(s/def :person/name :string)
+(s/define :person/name :string)
 (s/valid? :person/name "12312sdfasdf")
 (s/valid? [:or :int :string] 1)
 (s/valid? [:and :int #(< % 18)] 89)

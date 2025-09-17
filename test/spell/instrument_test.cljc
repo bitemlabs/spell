@@ -23,9 +23,9 @@
   ([a] [:int :=> :int] a)
   ([a b] [:int :int :=> :int] (+ a b)))
 
-(s/def :a :int)
-(s/def :b :int)
-(s/def ["age"] pos-int?)
+(s/df :a :int)
+(s/df :b :int)
+(s/df ["age"] pos-int?)
 
 (t/deftest tdefn-single-arity
   (t/testing "pass"

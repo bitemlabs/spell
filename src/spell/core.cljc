@@ -1,6 +1,7 @@
 (ns spell.core
   (:require
-   [spell.utils :as u]))
+   [spell.utils :as u])
+  (:import [clojure.lang IFn IPersistentVector]))
 
 (def predefs
   {:any any? :int int? :integer integer? :string string?
@@ -19,7 +20,7 @@
 (defonce ^:private compiled
   (atom {}))
 
-(defn def [k thing]
+(defn define [k thing]
   (swap! userdefs assoc k thing)
   (swap! compiled dissoc k))
 
@@ -29,20 +30,69 @@
 
 (declare compile!)
 
-(defn logical-pred [agg-f xs]
+(defn ^:private logical-and [preds]
+  (let [preds ^objects (into-array IFn preds)
+        cnt (alength preds)]
+    (fn [v]
+      (loop [i 0]
+        (if (= i cnt)
+          true
+          (if (.invoke ^IFn (aget preds i) v)
+            (recur (unchecked-inc-int i))
+            false))))))
+
+(defn ^:private logical-or [preds]
+  (let [preds ^objects (into-array IFn preds)
+        cnt (alength preds)]
+    (fn [v]
+      (loop [i 0]
+        (cond
+          (= i cnt) false
+          (.invoke ^IFn (aget preds i) v) true
+          :else (recur (unchecked-inc-int i)))))))
+
+(defn logical-pred [k xs]
   (let [preds (mapv compile! xs)]
-    (fn [v] (agg-f #(% v) preds))))
+    (case k
+      :or (logical-or preds)
+      :and (logical-and preds))))
 
 (defn collection-pred [col-type-f xs]
-  (let [elem-pred (compile! (first xs))]
-    (fn [v] (and (col-type-f v)
-                 (every? elem-pred v)))))
+  (let [elem-pred ^IFn (compile! (first xs))]
+    (fn [v]
+      (and (col-type-f v)
+           (if (vector? v)
+             ;; indexed loop – avoids seq/boxing
+             (let [^IPersistentVector vv v
+                   cnt (count vv)]
+               (loop [i 0]
+                 (if (= i cnt)
+                   true
+                   (if (.invoke elem-pred (nth vv i))
+                     (recur (unchecked-inc-int i))
+                     false))))
+             ;; generic seq loop
+             (loop [s (seq v)]
+               (if (nil? s)
+                 true
+                 (if (.invoke elem-pred (first s))
+                   (recur (next s))
+                   false))))))))
 
 (defn map-pred [{:keys [req]}]
-  (let [req-preds (mapv (fn [k] [k (compile! k)]) req)]
+  (let [ks (object-array req)
+        ps (object-array (map compile! req))
+        cnt (alength ks)]
     (fn [m]
       (and (map? m)
-           (every? (fn [[k p]] (p (get m k))) req-preds)))))
+           (loop [i 0]
+             (if (= i cnt)
+               true
+               (let [k (aget ks i)
+                     p ^IFn (aget ps i)]
+                 (if (.invoke p (get m k))
+                   (recur (unchecked-inc-int i))
+                   false))))))))
 
 (defn compile! [x]
   (or (get @compiled x)
@@ -55,12 +105,13 @@
                              (compile! userdef))
                  (vector? x) (let [[op & xs] x]
                                (case op
-                                 :or (logical-pred some xs)
-                                 :and (logical-pred every? xs)
+                                 :or (logical-pred :or xs)
+                                  :and (logical-pred :and xs)
                                  :vector (collection-pred vector? xs)
                                  :list (collection-pred list? xs)
                                  :set (collection-pred set? xs)
-                                 :enum #(contains? (set xs) %)
+                                 :enum (let [s (set xs)]
+                                         (fn [v] (contains? s v)))
                                  (fn [_] false)))
                  (map? x) (map-pred x)
                  :else #(u/fail! {:spec x}))))))
