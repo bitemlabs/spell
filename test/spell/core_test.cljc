@@ -5,58 +5,119 @@
    [spell.core :as s]
    [spell.utils :as u]))
 
-(t/deftest abbreviation-validation
-  (t/is (s/valid? :int 42))
-  (t/is (not (s/valid? :int "hi")))
-  (t/is (s/valid? :string "hello"))
-  (t/is (not (s/valid? :string 42)))
-  (t/is (s/valid? :keyword :foo))
-  (t/is (not (s/valid? :keyword "foo"))))
+;; ---------------------------------------------------------------------------
+;; Basic validation (qualified keywords preferred)
+;; ---------------------------------------------------------------------------
 
-(s/define :a :int)
-(s/define :b :int)
+(s/define :my.app/int int?)
+(s/define :my.app/string string?)
+(s/define :my.app/keyword keyword?)
+
+(t/deftest abbreviation-validation
+  (t/testing "qualified keywords"
+    (t/is (s/valid? :my.app/int 42))
+    (t/is (not (s/valid? :my.app/int "hi")))
+    (t/is (s/valid? :my.app/string "hello"))
+    (t/is (not (s/valid? :my.app/string 42)))
+    (t/is (s/valid? :my.app/keyword :foo))
+    (t/is (not (s/valid? :my.app/keyword "foo"))))
+  (t/testing "unqualified keywords"
+    (s/define :int int?)
+    (s/define :string string?)
+    (t/is (s/valid? :int 99))
+    (t/is (not (s/valid? :string 42))))
+  (t/testing "string identifiers"
+    (s/define ["age"] pos-int?)
+    (t/is (s/valid? ["age"] 30))
+    (t/is (not (s/valid? ["age"] -1))))
+  (t/testing "vector identifiers"
+    (s/define [:coords] [:vector int?])
+    (t/is (s/valid? [:coords] [1 2 3]))
+    (t/is (not (s/valid? [:coords] [1 "oops"])))))
+
+;; ---------------------------------------------------------------------------
+;; Map validation
+;; ---------------------------------------------------------------------------
+
+(s/define :my.app/a :int)
+(s/define :my.app/b :int)
 
 (t/deftest map-spec-validation
-  (t/is (s/valid? {:req [:a :b]} {:a 1 :b 2}))
-  (t/is (not (s/valid? {:req [:a :b]} {:a 1})))
-  (t/is (s/valid? {:req [:a] :opt [:b]} {:a 1}))
-  (t/is (s/valid? {:req [:a] :opt [:b]} {:a 1 :b 2}))
-  (t/is (not (s/valid? {:req [:a] :opt [:b]} {:b 1}))))
+  (t/testing "qualified maps"
+    (t/is (s/valid? {:req [:my.app/a :my.app/b]}
+                    {:my.app/a 1 :my.app/b 2}))
+    (t/is (not (s/valid? {:req [:my.app/a :my.app/b]}
+                         {:my.app/a 1})))
+    (t/is (s/valid? {:req [:my.app/a] :opt [:my.app/b]}
+                    {:my.app/a 1}))
+    (t/is (s/valid? {:req [:my.app/a] :opt [:my.app/b]}
+                    {:my.app/a 1 :my.app/b 2}))
+    (t/is (not (s/valid? {:req [:my.app/a] :opt [:my.app/b]}
+                         {:my.app/b 1}))))
+  (t/testing "unqualified maps"
+    (s/define :a :int)
+    (s/define :b :int)
+    (t/is (s/valid? {:req [:a :b]} {:a 1 :b 2}))))
+
+;; ---------------------------------------------------------------------------
+;; Logical operators
+;; ---------------------------------------------------------------------------
 
 (t/deftest logical-spec-validation
-  (t/is (s/valid? [:or :int :string] 42))
-  (t/is (s/valid? [:or :int :string] "hi"))
-  (t/is (not (s/valid? [:or :int :string] :foo)))
-  (t/is (s/valid? [:and int? #(>= % 0)] 3))
-  (t/is (not (s/valid? [:and int? #(>= % 0)] -1)))
-  (t/is (s/valid? [:enum 1 2 3] 3))
-  (t/is (not (s/valid? [:enum "abc" 123 false] -1))))
+  (t/testing "qualified"
+    (t/is (s/valid? [:or :my.app/int :my.app/string] 42))
+    (t/is (s/valid? [:or :my.app/int :my.app/string] "hi"))
+    (t/is (not (s/valid? [:or :my.app/int :my.app/string] :foo))))
+  (t/testing "mixed forms"
+    (t/is (s/valid? [:and int? #(>= % 0)] 3))
+    (t/is (not (s/valid? [:and int? #(>= % 0)] -1)))
+    (t/is (s/valid? [:enum 1 2 3] 3))
+    (t/is (not (s/valid? [:enum "abc" 123 false] -1)))))
+
+;; ---------------------------------------------------------------------------
+;; Collections
+;; ---------------------------------------------------------------------------
 
 (t/deftest collection-spec-validation
-  (t/is (s/valid? [:vector :int] [1 2 3]))
-  (t/is (not (s/valid? [:vector :int] [1 "hi"])))
-  (t/is (s/valid? [:list :string] '("a" "b")))
-  (t/is (not (s/valid? [:list :string] '("a" 1))))
-  (t/is (s/valid? [:set :keyword] #{:a :b}))
-  (t/is (not (s/valid? [:set :keyword] #{:a 1}))))
+  (t/testing "qualified"
+    (t/is (s/valid? [:vector :my.app/int] [1 2 3]))
+    (t/is (not (s/valid? [:vector :my.app/int] [1 "hi"])))
+    (t/is (s/valid? [:list :my.app/string] '("a" "b")))
+    (t/is (not (s/valid? [:list :my.app/string] '("a" 1))))
+    (t/is (s/valid? [:set :my.app/keyword] #{:a :b}))
+    (t/is (not (s/valid? [:set :my.app/keyword] #{:a 1}))))
+  (t/testing "alternative forms"
+    (t/is (s/valid? [:vector :int] [9 10]))))
+
+;; ---------------------------------------------------------------------------
+;; Coercion
+;; ---------------------------------------------------------------------------
 
 (t/deftest coerce-test
   (t/testing "pass"
-    (t/is (= 10 (s/coerce! :int 10))))
+    (t/is (= 10 (s/coerce! :my.app/int 10))))
   (t/testing "fail"
     (let [err (atom nil)]
       (with-redefs [u/fail! (fn [_m] (reset! err "!"))]
-        (s/coerce! :int "bad")
+        (s/coerce! :my.app/int "bad")
         (t/is (= "!" @err))))))
 
-(s/define :pos
+;; ---------------------------------------------------------------------------
+;; Custom spec
+;; ---------------------------------------------------------------------------
+
+(s/define :my.app/pos
   #(and (int? %) (pos? %)))
 
 (t/deftest df-custom-spec-test
   (t/testing "pass"
-    (t/is (s/valid? :pos 3)))
+    (t/is (s/valid? :my.app/pos 3)))
   (t/testing "fail"
-    (t/is (not (s/valid? :pos -1)))))
+    (t/is (not (s/valid? :my.app/pos -1)))))
+
+;; ---------------------------------------------------------------------------
+;; Predefs expanded
+;; ---------------------------------------------------------------------------
 
 (t/deftest predefs-expanded-test
   (let [samples {:integer [1 1.5] :symbol ['sym :sym]
@@ -80,6 +141,10 @@
       (t/is (s/valid? :any nil))
       (t/is (s/valid? :any 42)))))
 
+;; ---------------------------------------------------------------------------
+;; Predef vs Userdef
+;; ---------------------------------------------------------------------------
+
 (t/deftest predef-vs-userdef-test
   ;; user-defined spec for :string should not override built-in
   (s/define :string (constantly false))
@@ -91,9 +156,16 @@
     (t/is (s/valid? :life 42))
     (t/is (not (s/valid? :life 0)))))
 
+;; ---------------------------------------------------------------------------
+;; Mixed examples at the end
+;; ---------------------------------------------------------------------------
 
-(s/define :person/name :string)
-(s/valid? :person/name "12312sdfasdf")
-(s/valid? [:or :int :string] 1)
-(s/valid? [:and :int #(< % 18)] 89)
-(s/valid? {:req [:person/name]} {:person/name 123})
+(s/define :person/name :my.app/string)
+
+(t/deftest mixed-examples
+  (t/is (s/valid? :person/name "12312sdfasdf"))
+  (t/is (s/valid? [:or :my.app/int :my.app/string] 1))
+  (t/is (s/valid? [:and :my.app/int #(< % 18)] 12))
+  (t/is (not (s/valid? [:and :my.app/int #(< % 18)] 89)))
+  (t/is (s/valid? {:req [:person/name]} {:person/name "alice"}))
+  (t/is (not (s/valid? {:req [:person/name]} {:person/name 123}))))
