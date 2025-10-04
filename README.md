@@ -1,13 +1,4 @@
-```
-  _________             .__  .__
- /   _____/_____   ____ |  | |  |
- \_____  \\____ \_/ __ \|  | |  |
- /        \  |_> >  ___/|  |_|  |__
-/_______  /   __/ \___  >____/____/
-        \/|__|        \/
-```
-
-# spell
+![spell-logo](./resources/images/spell-logo.png)
 
 **spell** is a lightweight, flexible runtime validation library for Clojure. It's a drop-in replacement for `clojure.spec`, with fewer restrictions and more expressiveness — all without requiring macros everywhere.
 
